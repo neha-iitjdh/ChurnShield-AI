@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     # Streamlit
     streamlit_port: int = 8501
 
+    # CORS - Add your frontend URL in production
+    cors_origins: list = ["*"]  # Configure in production: ["https://your-frontend.railway.app"]
+
     @property
     def model_path(self) -> Path:
         """Get the full path to the trained model."""
