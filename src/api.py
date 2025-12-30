@@ -4,6 +4,7 @@ This is the INTERFACE between our model and the outside world.
 """
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Handle imports for both local run and Docker
@@ -26,6 +27,21 @@ app = FastAPI(
     title="ChurnShield AI",
     description="Predict customer churn using machine learning",
     version="1.0.0"
+)
+
+# ============================================================
+# CORS: Allow frontend to call this API
+# ============================================================
+# Without CORS, browsers block requests from different domains
+# Example: Vercel frontend (churnshield.vercel.app) calling
+#          Render backend (churnshield-ai.onrender.com)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],          # Allow all origins (for development)
+    allow_credentials=True,
+    allow_methods=["*"],          # Allow all HTTP methods
+    allow_headers=["*"],          # Allow all headers
 )
 
 # ============================================================
