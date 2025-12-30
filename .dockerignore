@@ -1,0 +1,25 @@
+# Files to exclude from Docker image
+# This makes the image smaller and builds faster
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment (we install fresh in container)
+venv/
+.venv/
+env/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.md
+*.log
+.env

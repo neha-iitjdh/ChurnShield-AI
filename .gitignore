@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment variables (NEVER commit secrets!)
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Model files (too large for git)
+*.joblib
+*.pkl
+
+# Logs
+*.log
