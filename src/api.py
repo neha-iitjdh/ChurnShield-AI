@@ -1,77 +1,89 @@
 """
 FastAPI Backend - Exposes our ML model as a REST API.
 This is the INTERFACE between our model and the outside world.
+
+IMPROVED: Now with more features, XGBoost, and metrics endpoint!
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 
 # Handle imports for both local run and Docker
 try:
-    # When running from src/ folder: python api.py
     from model import ChurnModel
     from load_data import load_telco_data, prepare_data
 except ImportError:
-    # When running from root with module: python -m uvicorn src.api:app
     from src.model import ChurnModel
     from src.load_data import load_telco_data, prepare_data
 
 # ============================================================
-# Step 1: Create FastAPI app
+# Create FastAPI app
 # ============================================================
-# FastAPI() creates our web application
-# It handles HTTP requests (GET, POST) and returns responses
 
 app = FastAPI(
     title="ChurnShield AI",
-    description="Predict customer churn using machine learning",
-    version="1.0.0"
+    description="Predict customer churn using XGBoost machine learning",
+    version="2.0.0"  # Updated version!
 )
 
-# ============================================================
-# CORS: Allow frontend to call this API
-# ============================================================
-# Without CORS, browsers block requests from different domains
-# Example: Vercel frontend (churnshield.vercel.app) calling
-#          Render backend (churnshield-ai.onrender.com)
-
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Allow all origins (for development)
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],          # Allow all HTTP methods
-    allow_headers=["*"],          # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ============================================================
-# Step 2: Define request/response schemas using Pydantic
+# Pydantic schemas (request/response models)
 # ============================================================
-# Pydantic models define WHAT data the API expects and returns
-# This gives us automatic validation and documentation!
 
 
 class CustomerInput(BaseModel):
     """
-    What the API expects when you send a prediction request.
-    These fields match what our ML model needs.
+    IMPROVED: Now accepts more customer features for better predictions!
     """
-    tenure: int                  # Months as customer
-    MonthlyCharges: float        # Monthly bill amount
-    TotalCharges: float          # Total amount paid
-    Contract: str                # 'Month-to-month', 'One year', 'Two year'
-    PaymentMethod: str           # Payment method
+    # Demographics
+    gender: str = "Male"                    # Male/Female
+    SeniorCitizen: int = 0                  # 0 or 1
+    Partner: str = "No"                     # Yes/No
+    Dependents: str = "No"                  # Yes/No
 
-    # Example for API documentation
+    # Account info
+    tenure: int                             # Months with company
+    Contract: str                           # Month-to-month, One year, Two year
+    PaperlessBilling: str = "Yes"           # Yes/No
+    PaymentMethod: str                      # Payment method
+
+    # Services
+    InternetService: str = "Fiber optic"    # DSL, Fiber optic, No
+    OnlineSecurity: str = "No"              # Yes/No/No internet service
+    TechSupport: str = "No"                 # Yes/No/No internet service
+
+    # Charges
+    MonthlyCharges: float
+    TotalCharges: float
+
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
+                    "gender": "Female",
+                    "SeniorCitizen": 0,
+                    "Partner": "No",
+                    "Dependents": "No",
                     "tenure": 12,
-                    "MonthlyCharges": 65.50,
-                    "TotalCharges": 786.00,
                     "Contract": "Month-to-month",
-                    "PaymentMethod": "Electronic check"
+                    "PaperlessBilling": "Yes",
+                    "PaymentMethod": "Electronic check",
+                    "InternetService": "Fiber optic",
+                    "OnlineSecurity": "No",
+                    "TechSupport": "No",
+                    "MonthlyCharges": 75.50,
+                    "TotalCharges": 906.00
                 }
             ]
         }
@@ -79,100 +91,104 @@ class CustomerInput(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    """
-    What the API returns after making a prediction.
-    """
-    churn_probability: float     # 0-100 percentage
-    risk_level: str              # Low, Medium, High, Critical
-    will_churn: bool             # True if probability >= 50%
+    """Prediction result."""
+    churn_probability: float
+    risk_level: str
+    will_churn: bool
+
+
+class MetricsResponse(BaseModel):
+    """Model performance metrics."""
+    accuracy: float
+    train_samples: int
+    test_samples: int
+    total_samples: int
+    feature_importance: dict
 
 
 # ============================================================
-# Step 3: Create and train the model (on startup)
+# Initialize and train model on startup
 # ============================================================
-# We train the model once when the server starts
-# In production, we'd load a pre-trained model instead
 
-print("Initializing ChurnShield AI...")
+print("Initializing ChurnShield AI v2.0...")
 model = ChurnModel()
 
-# Load real data and train
 print("Loading training data...")
 raw_data = load_telco_data()
 training_data = prepare_data(raw_data)
 
-print("Training model...")
+print("Training XGBoost model...")
 model.train(training_data)
 print("Model ready!")
 
 
 # ============================================================
-# Step 4: Define API endpoints (routes)
+# API Endpoints
 # ============================================================
 
 
 @app.get("/")
 def root():
-    """
-    Root endpoint - just confirms the API is running.
-    GET request to http://localhost:8000/
-    """
+    """Root endpoint - API info."""
     return {
         "message": "Welcome to ChurnShield AI!",
-        "status": "running",
-        "docs": "Visit /docs for API documentation"
+        "version": "2.0.0",
+        "model": "XGBoost",
+        "features": 13,
+        "docs": "/docs"
     }
 
 
 @app.get("/health")
 def health_check():
-    """
-    Health check endpoint - useful for monitoring.
-    GET request to http://localhost:8000/health
-    """
+    """Health check with model status."""
     return {
         "status": "healthy",
-        "model_trained": model.is_trained
+        "model_trained": model.is_trained,
+        "accuracy": model.metrics.get('accuracy', 0)
     }
+
+
+@app.get("/metrics", response_model=MetricsResponse)
+def get_metrics():
+    """
+    NEW: Get model performance metrics and feature importance.
+    This helps understand how well the model is performing!
+    """
+    if not model.is_trained:
+        raise HTTPException(status_code=503, detail="Model not trained")
+
+    return MetricsResponse(
+        accuracy=model.metrics.get('accuracy', 0),
+        train_samples=model.metrics.get('train_samples', 0),
+        test_samples=model.metrics.get('test_samples', 0),
+        total_samples=model.metrics.get('total_samples', 0),
+        feature_importance=model.get_feature_importance()
+    )
 
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict_churn(customer: CustomerInput):
     """
-    Main prediction endpoint.
-    POST request to http://localhost:8000/predict
-
-    Send customer data, get churn prediction back!
+    Predict churn for a customer.
+    Now with 13 features for better accuracy!
     """
-    # Check if model is ready
     if not model.is_trained:
-        raise HTTPException(
-            status_code=503,
-            detail="Model not trained yet. Please wait."
-        )
+        raise HTTPException(status_code=503, detail="Model not trained")
 
-    # Convert Pydantic model to dict (what our ML model expects)
     customer_data = customer.model_dump()
 
-    # Make prediction
     try:
         result = model.predict(customer_data)
         return PredictionResponse(**result)
     except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Prediction failed: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Prediction failed: {str(e)}")
 
 
 # ============================================================
-# Step 5: Run the server (when file is executed directly)
+# Run server
 # ============================================================
 
 if __name__ == "__main__":
     import uvicorn
-
-    # uvicorn runs our FastAPI app
-    # host="0.0.0.0" makes it accessible from other devices
-    # port=8000 is the default FastAPI port
     uvicorn.run(app, host="0.0.0.0", port=8000)

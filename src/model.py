@@ -1,67 +1,108 @@
 """
-Simple ML model for churn prediction.
+Improved ML model for churn prediction using XGBoost.
 This is the BRAIN of our application.
+
+XGBoost vs RandomForest:
+- XGBoost: Gradient boosting (learns from mistakes)
+- RandomForest: Bagging (many trees vote)
+- XGBoost usually gives better accuracy!
 """
 
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, classification_report
 import joblib
 
 
 class ChurnModel:
     """
-    A simple churn prediction model.
+    Improved churn prediction model using XGBoost.
 
     What it does:
     1. Takes customer data (tenure, charges, contract type, etc.)
     2. Predicts if they will churn (leave) or not
-    3. Returns probability (0-100%)
+    3. Returns probability (0-100%) and risk level
     """
 
     def __init__(self):
-        # The actual ML model (Random Forest - like many decision trees voting)
-        self.model = RandomForestClassifier(n_estimators=100, random_state=42)
+        # XGBoost classifier - more powerful than RandomForest
+        # Key parameters explained:
+        # - n_estimators: Number of boosting rounds (trees)
+        # - max_depth: How deep each tree can be (prevents overfitting)
+        # - learning_rate: How much to adjust weights (smaller = more careful)
+        # - eval_metric: What to optimize (logloss for classification)
+        self.model = XGBClassifier(
+            n_estimators=100,
+            max_depth=5,
+            learning_rate=0.1,
+            eval_metric='logloss',
+            random_state=42,
+            use_label_encoder=False
+        )
 
-        # Encoders to convert text to numbers (ML needs numbers, not text)
+        # Encoders to convert text to numbers
         self.encoders = {}
 
-        # Track if model is trained
+        # Track training status and metrics
         self.is_trained = False
+        self.metrics = {}
+        self.feature_names = []
 
     def train(self, data: pd.DataFrame):
         """
         Train the model on historical customer data.
+        Now with train/test split to measure real performance!
 
         Args:
-            data: DataFrame with columns like tenure, MonthlyCharges, Contract, Churn
+            data: DataFrame with customer features and 'Churn' column
         """
-        # Make a copy so we don't modify original
         df = data.copy()
 
         # Separate features (X) and target (y)
-        # X = what we use to predict (tenure, charges, etc.)
-        # y = what we're predicting (Churn: Yes/No)
         X = df.drop('Churn', axis=1)
         y = df['Churn']
 
+        # Store feature names for later
+        self.feature_names = list(X.columns)
+
         # Convert text columns to numbers
-        # Example: "Month-to-month" → 0, "One year" → 1, "Two year" → 2
         for column in X.select_dtypes(include=['object']).columns:
             self.encoders[column] = LabelEncoder()
             X[column] = self.encoders[column].fit_transform(X[column])
 
-        # Convert target (Churn) to numbers: "Yes" → 1, "No" → 0
+        # Encode target
         self.encoders['Churn'] = LabelEncoder()
         y = self.encoders['Churn'].fit_transform(y)
 
+        # Split data: 80% train, 20% test
+        # This lets us measure how well the model performs on unseen data!
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
+
         # Train the model
-        self.model.fit(X, y)
+        self.model.fit(X_train, y_train)
+
+        # Evaluate on test set
+        y_pred = self.model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+
+        # Store metrics
+        self.metrics = {
+            'accuracy': round(accuracy * 100, 2),
+            'train_samples': len(X_train),
+            'test_samples': len(X_test),
+            'total_samples': len(df)
+        }
+
         self.is_trained = True
 
-        print(f"Model trained on {len(df)} samples")
+        print(f"Model trained on {len(X_train)} samples")
+        print(f"Test accuracy: {self.metrics['accuracy']}%")
+
         return self
 
     def predict(self, customer_data: dict) -> dict:
@@ -77,7 +118,7 @@ class ChurnModel:
         if not self.is_trained:
             raise ValueError("Model not trained! Call train() first.")
 
-        # Convert dict to DataFrame (model expects DataFrame)
+        # Convert dict to DataFrame
         df = pd.DataFrame([customer_data])
 
         # Encode text columns using same encoders from training
@@ -86,9 +127,8 @@ class ChurnModel:
                 df[column] = self.encoders[column].transform(df[column])
 
         # Get prediction probability
-        # predict_proba returns [[prob_no_churn, prob_churn]]
         proba = self.model.predict_proba(df)[0]
-        churn_probability = proba[1]  # Probability of churn (index 1)
+        churn_probability = proba[1]
 
         # Determine risk level
         if churn_probability < 0.25:
@@ -101,17 +141,37 @@ class ChurnModel:
             risk_level = "Critical"
 
         return {
-            "churn_probability": round(churn_probability * 100, 2),  # As percentage
+            "churn_probability": round(churn_probability * 100, 2),
             "risk_level": risk_level,
             "will_churn": churn_probability >= 0.5
         }
+
+    def get_feature_importance(self) -> dict:
+        """
+        Get which features are most important for predictions.
+        This helps understand what drives churn!
+        """
+        if not self.is_trained:
+            return {}
+
+        importance = self.model.feature_importances_
+        feature_importance = dict(zip(self.feature_names, importance))
+
+        # Sort by importance (highest first)
+        sorted_importance = dict(
+            sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)
+        )
+
+        return {k: round(v * 100, 2) for k, v in sorted_importance.items()}
 
     def save(self, filepath: str):
         """Save model to disk."""
         joblib.dump({
             'model': self.model,
             'encoders': self.encoders,
-            'is_trained': self.is_trained
+            'is_trained': self.is_trained,
+            'metrics': self.metrics,
+            'feature_names': self.feature_names
         }, filepath)
         print(f"Model saved to {filepath}")
 
@@ -121,61 +181,81 @@ class ChurnModel:
         self.model = data['model']
         self.encoders = data['encoders']
         self.is_trained = data['is_trained']
+        self.metrics = data.get('metrics', {})
+        self.feature_names = data.get('feature_names', [])
         print(f"Model loaded from {filepath}")
         return self
 
 
 # ============================================================
-# DEMO: Test the model with REAL data
+# DEMO: Test the improved model
 # ============================================================
 
 if __name__ == "__main__":
-    # Import our data loader
     from load_data import load_telco_data, prepare_data
 
-    # Load REAL data from IBM's dataset
-    print("Loading real Telco Customer Churn data...")
+    # Load data
+    print("Loading Telco Customer Churn data...")
     raw_data = load_telco_data()
     training_data = prepare_data(raw_data)
 
     print(f"\nTraining data shape: {training_data.shape}")
-    print(training_data.head())
+    print(f"Features: {list(training_data.columns)}")
 
-    # Create and train model
+    # Train model
     print("\n" + "="*50)
-    print("Training model on REAL data...")
+    print("Training XGBoost model...")
     print("="*50)
     model = ChurnModel()
     model.train(training_data)
 
-    # Test prediction with a HIGH RISK customer
+    # Show feature importance
     print("\n" + "="*50)
-    print("Testing prediction - HIGH RISK customer:")
+    print("Feature Importance (what drives churn):")
     print("="*50)
-    high_risk_customer = {
-        'tenure': 2,                              # New customer (only 2 months)
-        'MonthlyCharges': 89.50,                  # High monthly bill
-        'TotalCharges': 179.00,                   # Low total (new customer)
-        'Contract': 'Month-to-month',             # No commitment!
-        'PaymentMethod': 'Electronic check'       # Risky payment method
-    }
+    importance = model.get_feature_importance()
+    for feature, score in importance.items():
+        print(f"  {feature}: {score}%")
 
-    result = model.predict(high_risk_customer)
-    print(f"Customer: {high_risk_customer}")
-    print(f"Prediction: {result}")
-
-    # Test prediction with a LOW RISK customer
+    # Test predictions
     print("\n" + "="*50)
-    print("Testing prediction - LOW RISK customer:")
+    print("Testing HIGH RISK customer:")
     print("="*50)
-    low_risk_customer = {
-        'tenure': 60,                             # Long-time customer (5 years!)
-        'MonthlyCharges': 45.00,                  # Moderate bill
-        'TotalCharges': 2700.00,                  # High total (loyal customer)
-        'Contract': 'Two year',                   # Long commitment
-        'PaymentMethod': 'Bank transfer (automatic)'  # Stable payment
+    high_risk = {
+        'gender': 'Female',
+        'SeniorCitizen': 1,
+        'Partner': 'No',
+        'Dependents': 'No',
+        'tenure': 2,
+        'Contract': 'Month-to-month',
+        'PaperlessBilling': 'Yes',
+        'PaymentMethod': 'Electronic check',
+        'InternetService': 'Fiber optic',
+        'OnlineSecurity': 'No',
+        'TechSupport': 'No',
+        'MonthlyCharges': 95.00,
+        'TotalCharges': 190.00
     }
+    print(f"Customer: {high_risk}")
+    print(f"Prediction: {model.predict(high_risk)}")
 
-    result = model.predict(low_risk_customer)
-    print(f"Customer: {low_risk_customer}")
-    print(f"Prediction: {result}")
+    print("\n" + "="*50)
+    print("Testing LOW RISK customer:")
+    print("="*50)
+    low_risk = {
+        'gender': 'Male',
+        'SeniorCitizen': 0,
+        'Partner': 'Yes',
+        'Dependents': 'Yes',
+        'tenure': 60,
+        'Contract': 'Two year',
+        'PaperlessBilling': 'No',
+        'PaymentMethod': 'Bank transfer (automatic)',
+        'InternetService': 'DSL',
+        'OnlineSecurity': 'Yes',
+        'TechSupport': 'Yes',
+        'MonthlyCharges': 55.00,
+        'TotalCharges': 3300.00
+    }
+    print(f"Customer: {low_risk}")
+    print(f"Prediction: {model.predict(low_risk)}")

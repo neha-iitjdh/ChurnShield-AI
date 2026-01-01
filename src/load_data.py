@@ -53,15 +53,32 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     # Drop rows with missing TotalCharges (only 11 rows)
     df = df.dropna(subset=['TotalCharges'])
 
-    # For our SIMPLE model, let's use just the most important features
-    # We can add more later!
+    # IMPROVED: Using more features for better predictions
+    # More features = model can learn more patterns
     key_features = [
-        'tenure',           # How long they've been a customer
-        'MonthlyCharges',   # Their monthly bill
+        # Customer demographics
+        'gender',           # Male/Female
+        'SeniorCitizen',    # 0 or 1 (elderly customers churn more)
+        'Partner',          # Has partner? (Yes/No)
+        'Dependents',       # Has dependents? (Yes/No)
+
+        # Account info
+        'tenure',           # Months with company (KEY FEATURE!)
+        'Contract',         # Month-to-month, One year, Two year
+        'PaperlessBilling', # Yes/No
+        'PaymentMethod',    # Electronic check churns more!
+
+        # Services
+        'InternetService',  # DSL, Fiber optic, No
+        'OnlineSecurity',   # Yes/No/No internet
+        'TechSupport',      # Yes/No/No internet
+
+        # Charges
+        'MonthlyCharges',   # Monthly bill amount
         'TotalCharges',     # Total amount paid
-        'Contract',         # Contract type (month-to-month is high risk!)
-        'PaymentMethod',    # How they pay
-        'Churn'             # TARGET: Did they leave?
+
+        # TARGET
+        'Churn'             # Did they leave? (Yes/No)
     ]
 
     df = df[key_features]
