@@ -13,6 +13,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+from contextlib import asynccontextmanager
 import pandas as pd
 import io
 
@@ -27,13 +28,44 @@ except ImportError:
     from src.database import save_prediction, get_predictions, get_prediction_stats, delete_prediction, clear_history
 
 # ============================================================
+# Global model instance (initialized in lifespan)
+# ============================================================
+model: ChurnModel = None
+
+
+# ============================================================
+# Lifespan - Initialize model AFTER server starts
+# ============================================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize model after server binds to port."""
+    global model
+    print("Initializing ChurnShield AI v2.2...")
+    model = ChurnModel()
+
+    print("Loading training data...")
+    raw_data = load_telco_data()
+    training_data = prepare_data(raw_data)
+
+    print("Training XGBoost model...")
+    model.train(training_data)
+    print("Model ready!")
+
+    yield  # Server runs here
+
+    # Cleanup (if needed)
+    print("Shutting down ChurnShield AI...")
+
+
+# ============================================================
 # Create FastAPI app
 # ============================================================
 
 app = FastAPI(
     title="ChurnShield AI",
     description="Predict customer churn using XGBoost ML - With batch predictions & history!",
-    version="2.2.0"
+    version="2.2.0",
+    lifespan=lifespan
 )
 
 # CORS middleware
@@ -125,20 +157,6 @@ class HistoryStatsResponse(BaseModel):
     recent_trend: List[dict]
 
 
-# ============================================================
-# Initialize and train model
-# ============================================================
-
-print("Initializing ChurnShield AI v2.1...")
-model = ChurnModel()
-
-print("Loading training data...")
-raw_data = load_telco_data()
-training_data = prepare_data(raw_data)
-
-print("Training XGBoost model...")
-model.train(training_data)
-print("Model ready!")
 
 
 # ============================================================
