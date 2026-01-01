@@ -14,18 +14,22 @@ from fastapi.testclient import TestClient
 import sys
 import os
 import io
-import atexit
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from api import app
 
-# Use lifespan context to trigger model initialization
-client = TestClient(app, raise_server_exceptions=True)
-client.__enter__()
+# Initialize model at module load for tests
+import api as api_module
+if api_module.model is None:
+    from model import ChurnModel
+    from load_data import load_telco_data, prepare_data
+    api_module.model = ChurnModel()
+    raw_data = load_telco_data()
+    training_data = prepare_data(raw_data)
+    api_module.model.train(training_data)
 
-# Ensure proper cleanup when tests finish
-atexit.register(lambda: client.__exit__(None, None, None))
+client = TestClient(app)
 
 
 # ============================================================
