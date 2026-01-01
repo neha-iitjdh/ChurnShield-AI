@@ -1,19 +1,151 @@
 'use client'
 
 /**
- * ChurnShield AI - Frontend v2.2
+ * ChurnShield AI - Frontend v2.3
  *
  * Features:
  * - Single customer prediction with 13 features
  * - Batch CSV upload with visualizations
  * - Feature importance chart
- * - Risk distribution chart
- * - Prediction history with stats (NEW!)
+ * - Churn risk gauge (NEW!)
+ * - Risk factor breakdown (NEW!)
+ * - Retention recommendations (NEW!)
+ * - What-if comparison mode (NEW!)
+ * - Customer segments (NEW!)
+ * - Prediction history with stats
  */
 
 import { useState, useEffect } from 'react'
 
 const API_URL = 'https://churnshield-ai.onrender.com'
+
+// Risk factor analysis based on input values
+function analyzeRiskFactors(formData) {
+  const factors = []
+
+  // Tenure analysis
+  if (formData.tenure <= 6) {
+    factors.push({ factor: 'Very short tenure', impact: 'high', description: 'New customers (< 6 months) have highest churn risk' })
+  } else if (formData.tenure <= 12) {
+    factors.push({ factor: 'Short tenure', impact: 'medium', description: 'Customers under 1 year are still at risk' })
+  } else if (formData.tenure >= 48) {
+    factors.push({ factor: 'Long tenure', impact: 'positive', description: 'Loyal customers (4+ years) rarely churn' })
+  }
+
+  // Contract analysis
+  if (formData.Contract === 'Month-to-month') {
+    factors.push({ factor: 'Month-to-month contract', impact: 'high', description: 'No commitment makes switching easy' })
+  } else if (formData.Contract === 'Two year') {
+    factors.push({ factor: 'Two year contract', impact: 'positive', description: 'Long-term commitment reduces churn' })
+  }
+
+  // Payment method
+  if (formData.PaymentMethod === 'Electronic check') {
+    factors.push({ factor: 'Electronic check payment', impact: 'high', description: 'Electronic check users churn 2x more often' })
+  } else if (formData.PaymentMethod.includes('automatic')) {
+    factors.push({ factor: 'Automatic payment', impact: 'positive', description: 'Auto-pay reduces friction and churn' })
+  }
+
+  // Services
+  if (formData.OnlineSecurity === 'No' && formData.InternetService !== 'No') {
+    factors.push({ factor: 'No online security', impact: 'medium', description: 'Security add-ons increase stickiness' })
+  }
+  if (formData.TechSupport === 'No' && formData.InternetService !== 'No') {
+    factors.push({ factor: 'No tech support', impact: 'medium', description: 'Support services reduce frustration' })
+  }
+
+  // Internet service
+  if (formData.InternetService === 'Fiber optic') {
+    factors.push({ factor: 'Fiber optic internet', impact: 'medium', description: 'Fiber customers have higher expectations' })
+  }
+
+  // Senior citizen
+  if (formData.SeniorCitizen === 1) {
+    factors.push({ factor: 'Senior citizen', impact: 'medium', description: 'Seniors may need extra support' })
+  }
+
+  // Monthly charges
+  if (formData.MonthlyCharges > 80) {
+    factors.push({ factor: 'High monthly charges', impact: 'medium', description: 'Customers paying $80+/month are price sensitive' })
+  }
+
+  // No partner/dependents
+  if (formData.Partner === 'No' && formData.Dependents === 'No') {
+    factors.push({ factor: 'Single household', impact: 'low', description: 'Less family ties to the service' })
+  }
+
+  return factors
+}
+
+// Generate retention recommendations based on risk factors
+function getRetentionRecommendations(formData, riskLevel, factors) {
+  const recommendations = []
+
+  if (formData.Contract === 'Month-to-month') {
+    recommendations.push({
+      action: 'Offer contract upgrade',
+      description: 'Provide 15% discount for switching to 1-year contract',
+      priority: 'high',
+      expectedImpact: '-20% churn risk'
+    })
+  }
+
+  if (formData.PaymentMethod === 'Electronic check') {
+    recommendations.push({
+      action: 'Incentivize auto-pay',
+      description: 'Offer $5/month credit for setting up automatic payments',
+      priority: 'high',
+      expectedImpact: '-15% churn risk'
+    })
+  }
+
+  if (formData.OnlineSecurity === 'No' && formData.InternetService !== 'No') {
+    recommendations.push({
+      action: 'Free security trial',
+      description: 'Offer 3-month free trial of Online Security service',
+      priority: 'medium',
+      expectedImpact: '-10% churn risk'
+    })
+  }
+
+  if (formData.TechSupport === 'No' && formData.InternetService !== 'No') {
+    recommendations.push({
+      action: 'Add tech support',
+      description: 'Include Tech Support free for first 6 months',
+      priority: 'medium',
+      expectedImpact: '-8% churn risk'
+    })
+  }
+
+  if (formData.tenure <= 12) {
+    recommendations.push({
+      action: 'New customer onboarding',
+      description: 'Schedule personal check-in call with customer success team',
+      priority: 'high',
+      expectedImpact: '-12% churn risk'
+    })
+  }
+
+  if (riskLevel === 'Critical' || riskLevel === 'High') {
+    recommendations.push({
+      action: 'Loyalty discount',
+      description: 'Offer exclusive 20% loyalty discount for 6 months',
+      priority: 'critical',
+      expectedImpact: '-25% churn risk'
+    })
+  }
+
+  if (formData.MonthlyCharges > 80) {
+    recommendations.push({
+      action: 'Plan optimization review',
+      description: 'Review plan to identify potential savings while keeping value',
+      priority: 'medium',
+      expectedImpact: '-5% churn risk'
+    })
+  }
+
+  return recommendations.slice(0, 4) // Return top 4 recommendations
+}
 
 export default function Home() {
   // Tab state
@@ -40,11 +172,20 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [metrics, setMetrics] = useState(null)
+  const [riskFactors, setRiskFactors] = useState([])
+  const [recommendations, setRecommendations] = useState([])
+
+  // What-if comparison state
+  const [showComparison, setShowComparison] = useState(false)
+  const [comparisonData, setComparisonData] = useState(null)
+  const [comparisonPrediction, setComparisonPrediction] = useState(null)
+  const [comparisonLoading, setComparisonLoading] = useState(false)
 
   // Batch prediction state
   const [batchFile, setBatchFile] = useState(null)
   const [batchResults, setBatchResults] = useState(null)
   const [batchLoading, setBatchLoading] = useState(false)
+  const [selectedSegment, setSelectedSegment] = useState('all')
 
   // History state
   const [history, setHistory] = useState([])
@@ -109,6 +250,8 @@ export default function Home() {
     setLoading(true)
     setError(null)
     setPrediction(null)
+    setRiskFactors([])
+    setRecommendations([])
 
     try {
       const response = await fetch(`${API_URL}/predict`, {
@@ -119,10 +262,52 @@ export default function Home() {
       if (!response.ok) throw new Error('Prediction failed')
       const result = await response.json()
       setPrediction(result)
+
+      // Analyze risk factors
+      const factors = analyzeRiskFactors(formData)
+      setRiskFactors(factors)
+
+      // Get recommendations
+      const recs = getRetentionRecommendations(formData, result.risk_level, factors)
+      setRecommendations(recs)
+
+      // Setup comparison data
+      setComparisonData({...formData})
+      setShowComparison(false)
+      setComparisonPrediction(null)
     } catch {
       setError('Failed to get prediction. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleComparisonChange = (e) => {
+    const { name, value } = e.target
+    setComparisonData(prev => ({
+      ...prev,
+      [name]: ['tenure', 'MonthlyCharges', 'TotalCharges', 'SeniorCitizen'].includes(name)
+        ? parseFloat(value)
+        : value
+    }))
+  }
+
+  const runComparison = async () => {
+    setComparisonLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(comparisonData),
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setComparisonPrediction(result)
+      }
+    } catch (err) {
+      console.log('Comparison failed')
+    } finally {
+      setComparisonLoading(false)
     }
   }
 
@@ -134,13 +319,13 @@ export default function Home() {
     setBatchResults(null)
     setError(null)
 
-    const formData = new FormData()
-    formData.append('file', batchFile)
+    const formDataUpload = new FormData()
+    formDataUpload.append('file', batchFile)
 
     try {
       const response = await fetch(`${API_URL}/predict/batch`, {
         method: 'POST',
-        body: formData,
+        body: formDataUpload,
       })
       if (!response.ok) {
         const err = await response.json()
@@ -178,6 +363,13 @@ export default function Home() {
     } catch (err) {
       console.log('Could not clear history')
     }
+  }
+
+  // Filter batch results by segment
+  const getFilteredBatchResults = () => {
+    if (!batchResults) return []
+    if (selectedSegment === 'all') return batchResults.predictions
+    return batchResults.predictions.filter(p => p.risk_level === selectedSegment)
   }
 
   return (
@@ -381,18 +573,47 @@ export default function Home() {
             </button>
           </form>
 
-          {/* Single Prediction Result */}
+          {/* Prediction Result with Gauge */}
           {prediction && (
             <div style={{...styles.result, borderColor: getRiskColor(prediction.risk_level)}}>
               <h2 style={styles.resultTitle}>Prediction Result</h2>
-              <div style={styles.probabilityBar}>
-                <div style={{...styles.probabilityFill, width: `${prediction.churn_probability}%`, backgroundColor: getRiskColor(prediction.risk_level)}} />
+
+              {/* Risk Gauge */}
+              <div style={styles.gaugeContainer}>
+                <svg viewBox="0 0 200 120" style={styles.gaugeSvg}>
+                  {/* Background arc */}
+                  <path
+                    d="M 20 100 A 80 80 0 0 1 180 100"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="16"
+                    strokeLinecap="round"
+                  />
+                  {/* Colored sections */}
+                  <path d="M 20 100 A 80 80 0 0 1 60 35" fill="none" stroke="#22c55e" strokeWidth="16" strokeLinecap="round" />
+                  <path d="M 60 35 A 80 80 0 0 1 100 20" fill="none" stroke="#f59e0b" strokeWidth="16" />
+                  <path d="M 100 20 A 80 80 0 0 1 140 35" fill="none" stroke="#ef4444" strokeWidth="16" />
+                  <path d="M 140 35 A 80 80 0 0 1 180 100" fill="none" stroke="#dc2626" strokeWidth="16" strokeLinecap="round" />
+                  {/* Needle */}
+                  <line
+                    x1="100"
+                    y1="100"
+                    x2={100 + 60 * Math.cos(Math.PI - (prediction.churn_probability / 100) * Math.PI)}
+                    y2={100 - 60 * Math.sin(Math.PI - (prediction.churn_probability / 100) * Math.PI)}
+                    stroke="#1f2937"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="100" cy="100" r="8" fill="#1f2937" />
+                  {/* Labels */}
+                  <text x="15" y="115" fontSize="10" fill="#6b7280">0%</text>
+                  <text x="175" y="115" fontSize="10" fill="#6b7280">100%</text>
+                </svg>
+                <div style={styles.gaugeValue}>{prediction.churn_probability}%</div>
+                <div style={styles.gaugeLabel}>Churn Probability</div>
               </div>
+
               <div style={styles.resultGrid}>
-                <div style={styles.resultCard}>
-                  <div style={{...styles.resultValue, color: getRiskColor(prediction.risk_level)}}>{prediction.churn_probability}%</div>
-                  <div style={styles.resultLabel}>Churn Probability</div>
-                </div>
                 <div style={styles.resultCard}>
                   <div style={{...styles.riskBadge, backgroundColor: getRiskColor(prediction.risk_level)}}>{prediction.risk_level}</div>
                   <div style={styles.resultLabel}>Risk Level</div>
@@ -401,6 +622,119 @@ export default function Home() {
                   <div style={{...styles.resultValue, color: prediction.will_churn ? '#dc2626' : '#22c55e'}}>{prediction.will_churn ? 'Yes' : 'No'}</div>
                   <div style={styles.resultLabel}>Will Churn?</div>
                 </div>
+              </div>
+
+              {/* Risk Factors Breakdown */}
+              {riskFactors.length > 0 && (
+                <div style={styles.riskFactorsSection}>
+                  <h3 style={styles.insightTitle}>Risk Factor Analysis</h3>
+                  <div style={styles.factorsList}>
+                    {riskFactors.map((factor, idx) => (
+                      <div key={idx} style={{...styles.factorItem, borderLeftColor: getImpactColor(factor.impact)}}>
+                        <div style={styles.factorHeader}>
+                          <span style={styles.factorName}>{factor.factor}</span>
+                          <span style={{...styles.impactBadge, backgroundColor: getImpactColor(factor.impact)}}>
+                            {factor.impact === 'positive' ? 'Protective' : factor.impact.toUpperCase()}
+                          </span>
+                        </div>
+                        <p style={styles.factorDescription}>{factor.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Retention Recommendations */}
+              {recommendations.length > 0 && (
+                <div style={styles.recommendationsSection}>
+                  <h3 style={styles.insightTitle}>Retention Recommendations</h3>
+                  <div style={styles.recommendationsList}>
+                    {recommendations.map((rec, idx) => (
+                      <div key={idx} style={{...styles.recommendationItem, borderLeftColor: getPriorityColor(rec.priority)}}>
+                        <div style={styles.recHeader}>
+                          <span style={styles.recAction}>{rec.action}</span>
+                          <span style={{...styles.priorityBadge, backgroundColor: getPriorityColor(rec.priority)}}>
+                            {rec.priority.toUpperCase()}
+                          </span>
+                        </div>
+                        <p style={styles.recDescription}>{rec.description}</p>
+                        <span style={styles.recImpact}>{rec.expectedImpact}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* What-If Comparison */}
+              <div style={styles.comparisonSection}>
+                <button
+                  style={styles.comparisonToggle}
+                  onClick={() => setShowComparison(!showComparison)}
+                >
+                  {showComparison ? 'Hide' : 'Show'} What-If Comparison
+                </button>
+
+                {showComparison && comparisonData && (
+                  <div style={styles.comparisonPanel}>
+                    <h4 style={styles.comparisonTitle}>Adjust values to see impact</h4>
+                    <div style={styles.comparisonGrid}>
+                      <div style={styles.comparisonField}>
+                        <label style={styles.label}>Tenure</label>
+                        <input type="number" name="tenure" value={comparisonData.tenure} onChange={handleComparisonChange} style={styles.comparisonInput} />
+                      </div>
+                      <div style={styles.comparisonField}>
+                        <label style={styles.label}>Contract</label>
+                        <select name="Contract" value={comparisonData.Contract} onChange={handleComparisonChange} style={styles.comparisonInput}>
+                          <option value="Month-to-month">Month-to-month</option>
+                          <option value="One year">One year</option>
+                          <option value="Two year">Two year</option>
+                        </select>
+                      </div>
+                      <div style={styles.comparisonField}>
+                        <label style={styles.label}>Payment</label>
+                        <select name="PaymentMethod" value={comparisonData.PaymentMethod} onChange={handleComparisonChange} style={styles.comparisonInput}>
+                          <option value="Electronic check">Electronic check</option>
+                          <option value="Mailed check">Mailed check</option>
+                          <option value="Bank transfer (automatic)">Bank transfer</option>
+                          <option value="Credit card (automatic)">Credit card</option>
+                        </select>
+                      </div>
+                      <div style={styles.comparisonField}>
+                        <label style={styles.label}>Online Security</label>
+                        <select name="OnlineSecurity" value={comparisonData.OnlineSecurity} onChange={handleComparisonChange} style={styles.comparisonInput}>
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button onClick={runComparison} style={styles.compareButton} disabled={comparisonLoading}>
+                      {comparisonLoading ? 'Calculating...' : 'Compare'}
+                    </button>
+
+                    {comparisonPrediction && (
+                      <div style={styles.comparisonResult}>
+                        <div style={styles.comparisonBox}>
+                          <div style={styles.comparisonLabel}>Original</div>
+                          <div style={{...styles.comparisonValue, color: getRiskColor(prediction.risk_level)}}>{prediction.churn_probability}%</div>
+                        </div>
+                        <div style={styles.comparisonArrow}>→</div>
+                        <div style={styles.comparisonBox}>
+                          <div style={styles.comparisonLabel}>With Changes</div>
+                          <div style={{...styles.comparisonValue, color: getRiskColor(comparisonPrediction.risk_level)}}>{comparisonPrediction.churn_probability}%</div>
+                        </div>
+                        <div style={styles.comparisonDiff}>
+                          {comparisonPrediction.churn_probability < prediction.churn_probability ? (
+                            <span style={{color: '#22c55e'}}>↓ {(prediction.churn_probability - comparisonPrediction.churn_probability).toFixed(1)}% reduction</span>
+                          ) : comparisonPrediction.churn_probability > prediction.churn_probability ? (
+                            <span style={{color: '#dc2626'}}>↑ {(comparisonPrediction.churn_probability - prediction.churn_probability).toFixed(1)}% increase</span>
+                          ) : (
+                            <span style={{color: '#6b7280'}}>No change</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -454,29 +788,87 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Risk Distribution */}
+              {/* Risk Distribution with Pie Chart */}
               <div style={styles.riskDistribution}>
                 <h4 style={styles.chartTitle}>Risk Distribution</h4>
-                <div style={styles.riskBars}>
-                  {Object.entries(batchResults.summary.risk_distribution).map(([level, count]) => (
-                    <div key={level} style={styles.riskBarItem}>
-                      <div style={styles.riskBarLabel}>{level}</div>
-                      <div style={styles.riskBarTrack}>
-                        <div style={{
-                          ...styles.riskBarFill,
-                          width: `${(count / batchResults.total_customers) * 100}%`,
-                          backgroundColor: getRiskColor(level)
-                        }} />
+                <div style={styles.pieChartContainer}>
+                  <svg viewBox="0 0 200 200" style={styles.pieChart}>
+                    {(() => {
+                      const total = batchResults.total_customers
+                      const dist = batchResults.summary.risk_distribution
+                      let currentAngle = 0
+                      const segments = []
+                      const colors = { Low: '#22c55e', Medium: '#f59e0b', High: '#ef4444', Critical: '#dc2626' }
+
+                      Object.entries(dist).forEach(([level, count]) => {
+                        if (count > 0) {
+                          const percentage = count / total
+                          const angle = percentage * 360
+                          const startAngle = currentAngle
+                          const endAngle = currentAngle + angle
+
+                          const x1 = 100 + 80 * Math.cos((startAngle - 90) * Math.PI / 180)
+                          const y1 = 100 + 80 * Math.sin((startAngle - 90) * Math.PI / 180)
+                          const x2 = 100 + 80 * Math.cos((endAngle - 90) * Math.PI / 180)
+                          const y2 = 100 + 80 * Math.sin((endAngle - 90) * Math.PI / 180)
+
+                          const largeArc = angle > 180 ? 1 : 0
+
+                          segments.push(
+                            <path
+                              key={level}
+                              d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                              fill={colors[level]}
+                              stroke="white"
+                              strokeWidth="2"
+                            />
+                          )
+                          currentAngle = endAngle
+                        }
+                      })
+                      return segments
+                    })()}
+                  </svg>
+                  <div style={styles.pieLegend}>
+                    {Object.entries(batchResults.summary.risk_distribution).map(([level, count]) => (
+                      <div key={level} style={styles.legendItem}>
+                        <span style={{...styles.legendDot, backgroundColor: getRiskColor(level)}}></span>
+                        <span>{level}: {count} ({((count / batchResults.total_customers) * 100).toFixed(0)}%)</span>
                       </div>
-                      <div style={styles.riskBarCount}>{count}</div>
-                    </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Segments */}
+              <div style={styles.segmentsSection}>
+                <h4 style={styles.chartTitle}>Customer Segments</h4>
+                <div style={styles.segmentTabs}>
+                  <button
+                    style={selectedSegment === 'all' ? styles.segmentTabActive : styles.segmentTab}
+                    onClick={() => setSelectedSegment('all')}
+                  >
+                    All ({batchResults.total_customers})
+                  </button>
+                  {Object.entries(batchResults.summary.risk_distribution).map(([level, count]) => (
+                    <button
+                      key={level}
+                      style={selectedSegment === level ? styles.segmentTabActive : styles.segmentTab}
+                      onClick={() => setSelectedSegment(level)}
+                    >
+                      <span style={{...styles.segmentDot, backgroundColor: getRiskColor(level)}}></span>
+                      {level} ({count})
+                    </button>
                   ))}
                 </div>
               </div>
 
               {/* Customer Table */}
               <div style={styles.tableContainer}>
-                <h4 style={styles.chartTitle}>Individual Predictions</h4>
+                <h4 style={styles.chartTitle}>
+                  {selectedSegment === 'all' ? 'All Customers' : `${selectedSegment} Risk Customers`}
+                  ({getFilteredBatchResults().length})
+                </h4>
                 <table style={styles.table}>
                   <thead>
                     <tr>
@@ -487,7 +879,7 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {batchResults.predictions.map((pred, idx) => (
+                    {getFilteredBatchResults().map((pred, idx) => (
                       <tr key={idx} style={pred.will_churn ? styles.trChurn : styles.tr}>
                         <td style={styles.td}>{pred.customer_id}</td>
                         <td style={styles.td}>{pred.churn_probability}%</td>
@@ -610,7 +1002,7 @@ export default function Home() {
 
       {/* Footer */}
       <p style={styles.footer}>
-        ChurnShield AI v2.2 • XGBoost • {metrics ? `${metrics.total_samples?.toLocaleString()} samples` : ''}
+        ChurnShield AI v2.3 • XGBoost • {metrics ? `${metrics.total_samples?.toLocaleString()} samples` : ''}
       </p>
     </div>
   )
@@ -621,8 +1013,18 @@ function getRiskColor(level) {
   return colors[level] || '#6b7280'
 }
 
+function getImpactColor(impact) {
+  const colors = { high: '#dc2626', medium: '#f59e0b', low: '#3b82f6', positive: '#22c55e' }
+  return colors[impact] || '#6b7280'
+}
+
+function getPriorityColor(priority) {
+  const colors = { critical: '#dc2626', high: '#ef4444', medium: '#f59e0b', low: '#3b82f6' }
+  return colors[priority] || '#6b7280'
+}
+
 const styles = {
-  container: { maxWidth: '700px', margin: '40px auto', padding: '20px', fontFamily: 'system-ui, sans-serif' },
+  container: { maxWidth: '750px', margin: '40px auto', padding: '20px', fontFamily: 'system-ui, sans-serif' },
   title: { fontSize: '2rem', textAlign: 'center', marginBottom: '4px', color: '#1f2937' },
   subtitle: { textAlign: 'center', color: '#6b7280', marginBottom: '24px' },
 
@@ -661,13 +1063,53 @@ const styles = {
   // Results
   result: { marginTop: '24px', padding: '20px', border: '2px solid', borderRadius: '12px', backgroundColor: 'white' },
   resultTitle: { fontSize: '1.1rem', marginBottom: '16px', color: '#1f2937', fontWeight: '600' },
-  probabilityBar: { height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', marginBottom: '20px', overflow: 'hidden' },
-  probabilityFill: { height: '100%', borderRadius: '4px', transition: 'width 0.5s' },
-  resultGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' },
+  resultGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '20px' },
   resultCard: { textAlign: 'center', padding: '12px' },
   resultValue: { fontSize: '1.5rem', fontWeight: '700' },
   resultLabel: { fontSize: '12px', color: '#6b7280', marginTop: '4px' },
   riskBadge: { display: 'inline-block', padding: '8px 16px', borderRadius: '20px', color: 'white', fontWeight: '600', fontSize: '14px' },
+
+  // Gauge
+  gaugeContainer: { textAlign: 'center', marginBottom: '10px' },
+  gaugeSvg: { width: '200px', height: '120px' },
+  gaugeValue: { fontSize: '2rem', fontWeight: '700', color: '#1f2937', marginTop: '-10px' },
+  gaugeLabel: { fontSize: '12px', color: '#6b7280' },
+
+  // Risk Factors
+  riskFactorsSection: { marginTop: '24px', padding: '16px', backgroundColor: '#fefce8', borderRadius: '8px', border: '1px solid #fef08a' },
+  insightTitle: { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' },
+  factorsList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  factorItem: { padding: '12px', backgroundColor: 'white', borderRadius: '6px', borderLeft: '4px solid', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
+  factorHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' },
+  factorName: { fontWeight: '600', fontSize: '13px', color: '#1f2937' },
+  impactBadge: { padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', color: 'white' },
+  factorDescription: { fontSize: '12px', color: '#6b7280', margin: 0 },
+
+  // Recommendations
+  recommendationsSection: { marginTop: '16px', padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' },
+  recommendationsList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  recommendationItem: { padding: '12px', backgroundColor: 'white', borderRadius: '6px', borderLeft: '4px solid', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
+  recHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' },
+  recAction: { fontWeight: '600', fontSize: '13px', color: '#1f2937' },
+  priorityBadge: { padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', color: 'white' },
+  recDescription: { fontSize: '12px', color: '#6b7280', margin: '0 0 6px 0' },
+  recImpact: { fontSize: '11px', fontWeight: '600', color: '#22c55e' },
+
+  // Comparison
+  comparisonSection: { marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' },
+  comparisonToggle: { width: '100%', padding: '10px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', color: '#374151' },
+  comparisonPanel: { marginTop: '16px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' },
+  comparisonTitle: { fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' },
+  comparisonGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' },
+  comparisonField: { display: 'flex', flexDirection: 'column', gap: '4px' },
+  comparisonInput: { padding: '8px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '4px' },
+  compareButton: { width: '100%', padding: '10px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' },
+  comparisonResult: { marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' },
+  comparisonBox: { textAlign: 'center', padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' },
+  comparisonLabel: { fontSize: '11px', color: '#6b7280', marginBottom: '4px' },
+  comparisonValue: { fontSize: '1.5rem', fontWeight: '700' },
+  comparisonArrow: { fontSize: '24px', color: '#9ca3af' },
+  comparisonDiff: { width: '100%', textAlign: 'center', fontWeight: '600', marginTop: '8px' },
 
   // Batch
   batchSection: { padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' },
@@ -679,6 +1121,20 @@ const styles = {
   summaryCard: { padding: '16px', backgroundColor: 'white', borderRadius: '12px', textAlign: 'center', border: '2px solid #e5e7eb' },
   summaryValue: { fontSize: '1.5rem', fontWeight: '700', color: '#1f2937' },
   summaryLabel: { fontSize: '11px', color: '#6b7280', marginTop: '4px', textTransform: 'uppercase' },
+
+  // Pie Chart
+  pieChartContainer: { display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' },
+  pieChart: { width: '150px', height: '150px' },
+  pieLegend: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  legendItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' },
+  legendDot: { width: '12px', height: '12px', borderRadius: '50%' },
+
+  // Segments
+  segmentsSection: { marginBottom: '16px' },
+  segmentTabs: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+  segmentTab: { padding: '8px 16px', backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '20px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' },
+  segmentTabActive: { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: '1px solid #3b82f6', borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' },
+  segmentDot: { width: '8px', height: '8px', borderRadius: '50%' },
 
   // Risk Distribution
   riskDistribution: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '24px' },
