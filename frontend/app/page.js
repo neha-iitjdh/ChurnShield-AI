@@ -1,18 +1,20 @@
 'use client'
 
 /**
- * ChurnShield AI - Frontend v2.3
+ * ChurnShield AI - Frontend v2.4
  *
  * Features:
  * - Single customer prediction with 13 features
  * - Batch CSV upload with visualizations
  * - Feature importance chart
- * - Churn risk gauge (NEW!)
- * - Risk factor breakdown (NEW!)
- * - Retention recommendations (NEW!)
- * - What-if comparison mode (NEW!)
- * - Customer segments (NEW!)
+ * - Churn risk gauge
+ * - Risk factor breakdown
+ * - Retention recommendations
+ * - What-if comparison mode
+ * - Customer segments
  * - Prediction history with stats
+ * - Dashboard Analytics (NEW!)
+ * - Trend charts & KPIs (NEW!)
  */
 
 import { useState, useEffect } from 'react'
@@ -149,7 +151,7 @@ function getRetentionRecommendations(formData, riskLevel, factors) {
 
 export default function Home() {
   // Tab state
-  const [activeTab, setActiveTab] = useState('single')
+  const [activeTab, setActiveTab] = useState('dashboard')
 
   // Single prediction state
   const [formData, setFormData] = useState({
@@ -200,9 +202,9 @@ export default function Home() {
       .catch(() => console.log('Could not fetch metrics'))
   }, [])
 
-  // Fetch history when tab changes to history
+  // Fetch history when tab changes to history or dashboard
   useEffect(() => {
-    if (activeTab === 'history') {
+    if (activeTab === 'history' || activeTab === 'dashboard') {
       fetchHistory()
       fetchHistoryStats()
     }
@@ -424,16 +426,22 @@ export default function Home() {
       {/* Tabs */}
       <div style={styles.tabs}>
         <button
+          style={activeTab === 'dashboard' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('dashboard')}
+        >
+          Dashboard
+        </button>
+        <button
           style={activeTab === 'single' ? styles.tabActive : styles.tab}
           onClick={() => setActiveTab('single')}
         >
-          Single Prediction
+          Predict
         </button>
         <button
           style={activeTab === 'batch' ? styles.tabActive : styles.tab}
           onClick={() => setActiveTab('batch')}
         >
-          Batch Upload (CSV)
+          Batch CSV
         </button>
         <button
           style={activeTab === 'history' ? styles.tabActive : styles.tab}
@@ -445,6 +453,226 @@ export default function Home() {
 
       {/* Error Display */}
       {error && <div style={styles.error}>{error}</div>}
+
+      {/* Dashboard Tab */}
+      {activeTab === 'dashboard' && (
+        <div style={styles.dashboardContainer}>
+          {/* KPI Cards */}
+          <div style={styles.kpiGrid}>
+            <div style={{...styles.kpiCard, borderColor: '#3b82f6'}}>
+              <div style={styles.kpiIcon}>📊</div>
+              <div style={styles.kpiContent}>
+                <div style={styles.kpiValue}>{historyStats?.total_predictions || 0}</div>
+                <div style={styles.kpiLabel}>Total Predictions</div>
+              </div>
+            </div>
+            <div style={{...styles.kpiCard, borderColor: '#ef4444'}}>
+              <div style={styles.kpiIcon}>⚠️</div>
+              <div style={styles.kpiContent}>
+                <div style={{...styles.kpiValue, color: '#ef4444'}}>{historyStats?.overall_churn_rate || 0}%</div>
+                <div style={styles.kpiLabel}>Overall Churn Rate</div>
+              </div>
+            </div>
+            <div style={{...styles.kpiCard, borderColor: '#f59e0b'}}>
+              <div style={styles.kpiIcon}>📈</div>
+              <div style={styles.kpiContent}>
+                <div style={{...styles.kpiValue, color: '#f59e0b'}}>{historyStats?.average_probability || 0}%</div>
+                <div style={styles.kpiLabel}>Avg Churn Probability</div>
+              </div>
+            </div>
+            <div style={{...styles.kpiCard, borderColor: '#22c55e'}}>
+              <div style={styles.kpiIcon}>✅</div>
+              <div style={styles.kpiContent}>
+                <div style={{...styles.kpiValue, color: '#22c55e'}}>{metrics?.accuracy || 0}%</div>
+                <div style={styles.kpiLabel}>Model Accuracy</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Trend Chart - Line graph of recent predictions */}
+          {historyStats?.recent_trend && historyStats.recent_trend.length > 0 && (
+            <div style={styles.trendSection}>
+              <h3 style={styles.chartTitle}>Churn Probability Trend (Recent Predictions)</h3>
+              <div style={styles.trendChart}>
+                <svg viewBox="0 0 600 200" style={styles.trendSvg}>
+                  {/* Grid lines */}
+                  {[0, 25, 50, 75, 100].map((val, i) => (
+                    <g key={val}>
+                      <line x1="50" y1={180 - val * 1.6} x2="580" y2={180 - val * 1.6} stroke="#e5e7eb" strokeWidth="1" />
+                      <text x="40" y={185 - val * 1.6} fontSize="10" fill="#9ca3af" textAnchor="end">{val}%</text>
+                    </g>
+                  ))}
+
+                  {/* Trend line */}
+                  <polyline
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={historyStats.recent_trend.map((item, idx) => {
+                      const x = 60 + (idx * (520 / Math.max(historyStats.recent_trend.length - 1, 1)))
+                      const y = 180 - (item.avg_probability * 1.6)
+                      return `${x},${y}`
+                    }).join(' ')}
+                  />
+
+                  {/* Data points */}
+                  {historyStats.recent_trend.map((item, idx) => {
+                    const x = 60 + (idx * (520 / Math.max(historyStats.recent_trend.length - 1, 1)))
+                    const y = 180 - (item.avg_probability * 1.6)
+                    return (
+                      <g key={idx}>
+                        <circle cx={x} cy={y} r="6" fill="#3b82f6" />
+                        <circle cx={x} cy={y} r="3" fill="white" />
+                        <text x={x} y={195} fontSize="9" fill="#6b7280" textAnchor="middle">
+                          {item.date?.slice(5) || `#${idx + 1}`}
+                        </text>
+                      </g>
+                    )
+                  })}
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* Risk Distribution Donut Chart */}
+          {historyStats?.risk_distribution && Object.keys(historyStats.risk_distribution).length > 0 && (
+            <div style={styles.analyticsGrid}>
+              <div style={styles.analyticsCard}>
+                <h3 style={styles.chartTitle}>Risk Level Distribution</h3>
+                <div style={styles.donutContainer}>
+                  <svg viewBox="0 0 200 200" style={styles.donutChart}>
+                    {(() => {
+                      const total = Object.values(historyStats.risk_distribution).reduce((a, b) => a + b, 0)
+                      if (total === 0) return null
+                      let currentAngle = -90
+                      const colors = { Low: '#22c55e', Medium: '#f59e0b', High: '#ef4444', Critical: '#dc2626' }
+
+                      return Object.entries(historyStats.risk_distribution).map(([level, count]) => {
+                        if (count === 0) return null
+                        const percentage = count / total
+                        const angle = percentage * 360
+                        const startAngle = currentAngle
+                        const endAngle = currentAngle + angle
+                        currentAngle = endAngle
+
+                        const startRad = startAngle * Math.PI / 180
+                        const endRad = endAngle * Math.PI / 180
+                        const x1 = 100 + 70 * Math.cos(startRad)
+                        const y1 = 100 + 70 * Math.sin(startRad)
+                        const x2 = 100 + 70 * Math.cos(endRad)
+                        const y2 = 100 + 70 * Math.sin(endRad)
+                        const largeArc = angle > 180 ? 1 : 0
+
+                        return (
+                          <path
+                            key={level}
+                            d={`M 100 100 L ${x1} ${y1} A 70 70 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                            fill={colors[level] || '#6b7280'}
+                            stroke="white"
+                            strokeWidth="2"
+                          />
+                        )
+                      })
+                    })()}
+                    <circle cx="100" cy="100" r="40" fill="white" />
+                    <text x="100" y="95" fontSize="20" fontWeight="bold" textAnchor="middle" fill="#1f2937">
+                      {historyStats?.total_predictions || 0}
+                    </text>
+                    <text x="100" y="115" fontSize="10" textAnchor="middle" fill="#6b7280">
+                      Total
+                    </text>
+                  </svg>
+                  <div style={styles.donutLegend}>
+                    {Object.entries(historyStats.risk_distribution).map(([level, count]) => (
+                      <div key={level} style={styles.legendRow}>
+                        <span style={{...styles.legendDot, backgroundColor: getRiskColor(level)}}></span>
+                        <span style={styles.legendText}>{level}</span>
+                        <span style={styles.legendCount}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div style={styles.analyticsCard}>
+                <h3 style={styles.chartTitle}>Quick Insights</h3>
+                <div style={styles.insightsList}>
+                  <div style={styles.insightItem}>
+                    <span style={styles.insightLabel}>Highest Risk Segment</span>
+                    <span style={{...styles.insightValue, color: '#ef4444'}}>
+                      {historyStats?.risk_distribution ?
+                        Object.entries(historyStats.risk_distribution)
+                          .filter(([level]) => level !== 'Low')
+                          .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div style={styles.insightItem}>
+                    <span style={styles.insightLabel}>Low Risk Customers</span>
+                    <span style={{...styles.insightValue, color: '#22c55e'}}>
+                      {historyStats?.risk_distribution?.Low || 0}
+                    </span>
+                  </div>
+                  <div style={styles.insightItem}>
+                    <span style={styles.insightLabel}>High + Critical Risk</span>
+                    <span style={{...styles.insightValue, color: '#dc2626'}}>
+                      {(historyStats?.risk_distribution?.High || 0) + (historyStats?.risk_distribution?.Critical || 0)}
+                    </span>
+                  </div>
+                  <div style={styles.insightItem}>
+                    <span style={styles.insightLabel}>Retention Opportunity</span>
+                    <span style={styles.insightValue}>
+                      {historyStats?.total_predictions ?
+                        Math.round(((historyStats?.risk_distribution?.Medium || 0) / historyStats.total_predictions) * 100)
+                        : 0}% at Medium Risk
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Model Performance */}
+          {metrics && (
+            <div style={styles.modelPerformance}>
+              <h3 style={styles.chartTitle}>Model Performance</h3>
+              <div style={styles.perfGrid}>
+                <div style={styles.perfItem}>
+                  <div style={styles.perfLabel}>Training Samples</div>
+                  <div style={styles.perfValue}>{metrics.train_samples?.toLocaleString()}</div>
+                </div>
+                <div style={styles.perfItem}>
+                  <div style={styles.perfLabel}>Test Samples</div>
+                  <div style={styles.perfValue}>{metrics.test_samples?.toLocaleString()}</div>
+                </div>
+                <div style={styles.perfItem}>
+                  <div style={styles.perfLabel}>Total Dataset</div>
+                  <div style={styles.perfValue}>{metrics.total_samples?.toLocaleString()}</div>
+                </div>
+                <div style={styles.perfItem}>
+                  <div style={styles.perfLabel}>Features Used</div>
+                  <div style={styles.perfValue}>13</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* No data message */}
+          {(!historyStats || historyStats.total_predictions === 0) && (
+            <div style={styles.noDataMessage}>
+              <div style={styles.noDataIcon}>📊</div>
+              <h3 style={styles.noDataTitle}>No Analytics Data Yet</h3>
+              <p style={styles.noDataText}>
+                Start making predictions to see analytics here.
+                Use the Predict or Batch CSV tabs to analyze customers.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Single Prediction Tab */}
       {activeTab === 'single' && (
@@ -1002,7 +1230,7 @@ export default function Home() {
 
       {/* Footer */}
       <p style={styles.footer}>
-        ChurnShield AI v2.3 • XGBoost • {metrics ? `${metrics.total_samples?.toLocaleString()} samples` : ''}
+        ChurnShield AI v2.4 • XGBoost • {metrics ? `${metrics.total_samples?.toLocaleString()} samples` : ''}
       </p>
     </div>
   )
@@ -1045,9 +1273,9 @@ const styles = {
   barValue: { fontSize: '12px', fontWeight: '600', color: '#374151' },
 
   // Tabs
-  tabs: { display: 'flex', gap: '8px', marginBottom: '20px' },
-  tab: { flex: 1, padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500', color: '#6b7280' },
-  tabActive: { flex: 1, padding: '12px', border: '2px solid #3b82f6', borderRadius: '8px', backgroundColor: '#eff6ff', cursor: 'pointer', fontWeight: '600', color: '#3b82f6' },
+  tabs: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
+  tab: { flex: '1 1 auto', minWidth: '120px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500', color: '#6b7280', textAlign: 'center' },
+  tabActive: { flex: '1 1 auto', minWidth: '120px', padding: '12px', border: '2px solid #3b82f6', borderRadius: '8px', backgroundColor: '#eff6ff', cursor: 'pointer', fontWeight: '600', color: '#3b82f6', textAlign: 'center' },
 
   // Form
   form: { display: 'flex', flexDirection: 'column', gap: '16px' },
@@ -1163,4 +1391,49 @@ const styles = {
   deleteButton: { padding: '6px 12px', fontSize: '12px', color: '#dc2626', backgroundColor: 'transparent', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer' },
 
   footer: { textAlign: 'center', color: '#9ca3af', fontSize: '12px', marginTop: '32px' },
+
+  // Dashboard
+  dashboardContainer: { display: 'flex', flexDirection: 'column', gap: '24px' },
+  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' },
+  kpiCard: { display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '2px solid', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  kpiIcon: { fontSize: '28px' },
+  kpiContent: { flex: 1 },
+  kpiValue: { fontSize: '1.75rem', fontWeight: '700', color: '#1f2937' },
+  kpiLabel: { fontSize: '12px', color: '#6b7280', marginTop: '2px' },
+
+  // Trend Chart
+  trendSection: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' },
+  trendChart: { width: '100%', overflowX: 'auto' },
+  trendSvg: { width: '100%', minWidth: '500px', height: '200px' },
+
+  // Analytics Grid
+  analyticsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
+  analyticsCard: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' },
+
+  // Donut Chart
+  donutContainer: { display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' },
+  donutChart: { width: '160px', height: '160px' },
+  donutLegend: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  legendRow: { display: 'flex', alignItems: 'center', gap: '8px' },
+  legendText: { fontSize: '13px', flex: 1 },
+  legendCount: { fontSize: '13px', fontWeight: '600' },
+
+  // Insights List
+  insightsList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  insightItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' },
+  insightLabel: { fontSize: '13px', color: '#6b7280' },
+  insightValue: { fontSize: '14px', fontWeight: '600', color: '#1f2937' },
+
+  // Model Performance
+  modelPerformance: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' },
+  perfGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' },
+  perfItem: { textAlign: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' },
+  perfLabel: { fontSize: '11px', color: '#6b7280', marginBottom: '4px' },
+  perfValue: { fontSize: '1.1rem', fontWeight: '600', color: '#1f2937' },
+
+  // No Data
+  noDataMessage: { padding: '60px 20px', textAlign: 'center', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' },
+  noDataIcon: { fontSize: '48px', marginBottom: '16px' },
+  noDataTitle: { fontSize: '1.25rem', fontWeight: '600', color: '#374151', marginBottom: '8px' },
+  noDataText: { fontSize: '14px', color: '#6b7280', maxWidth: '400px', margin: '0 auto' },
 }
