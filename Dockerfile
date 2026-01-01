@@ -31,7 +31,11 @@ COPY src/ ./src/
 # This tells Docker our app listens on port 8000
 EXPOSE 8000
 
-# Step 7: Set the startup command
+# Step 7: Set environment variable for port
+ENV PORT=8000
+
+# Step 8: Set the startup command
 # When container starts, run our API
 # --host 0.0.0.0 makes it accessible from outside the container
-CMD ["python", "-m", "uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Using shell form to allow $PORT variable substitution
+CMD uvicorn src.api:app --host 0.0.0.0 --port $PORT
