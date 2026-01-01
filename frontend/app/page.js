@@ -1,14 +1,14 @@
 'use client'
 
 /**
- * ChurnShield AI - Frontend v2.1
+ * ChurnShield AI - Frontend v2.2
  *
  * Features:
  * - Single customer prediction with 13 features
  * - Batch CSV upload with visualizations
  * - Feature importance chart
- * - Risk distribution pie chart
- * - Interactive tabs
+ * - Risk distribution chart
+ * - Prediction history with stats (NEW!)
  */
 
 import { useState, useEffect } from 'react'
@@ -46,6 +46,11 @@ export default function Home() {
   const [batchResults, setBatchResults] = useState(null)
   const [batchLoading, setBatchLoading] = useState(false)
 
+  // History state
+  const [history, setHistory] = useState([])
+  const [historyStats, setHistoryStats] = useState(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+
   // Fetch metrics on load
   useEffect(() => {
     fetch(`${API_URL}/metrics`)
@@ -53,6 +58,41 @@ export default function Home() {
       .then(data => setMetrics(data))
       .catch(() => console.log('Could not fetch metrics'))
   }, [])
+
+  // Fetch history when tab changes to history
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchHistory()
+      fetchHistoryStats()
+    }
+  }, [activeTab])
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/history?limit=20`)
+      if (response.ok) {
+        const data = await response.json()
+        setHistory(data.predictions || [])
+      }
+    } catch (err) {
+      console.log('Could not fetch history')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const fetchHistoryStats = async () => {
+    try {
+      const response = await fetch(`${API_URL}/history/stats`)
+      if (response.ok) {
+        const data = await response.json()
+        setHistoryStats(data)
+      }
+    } catch (err) {
+      console.log('Could not fetch history stats')
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -112,6 +152,31 @@ export default function Home() {
       setError(err.message || 'Batch prediction failed')
     } finally {
       setBatchLoading(false)
+    }
+  }
+
+  const handleDeleteHistory = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/history/${id}`, { method: 'DELETE' })
+      if (response.ok) {
+        setHistory(prev => prev.filter(p => p.id !== id))
+        fetchHistoryStats()
+      }
+    } catch (err) {
+      console.log('Could not delete')
+    }
+  }
+
+  const handleClearHistory = async () => {
+    if (!confirm('Are you sure you want to clear all history?')) return
+    try {
+      const response = await fetch(`${API_URL}/history`, { method: 'DELETE' })
+      if (response.ok) {
+        setHistory([])
+        setHistoryStats(null)
+      }
+    } catch (err) {
+      console.log('Could not clear history')
     }
   }
 
@@ -177,6 +242,12 @@ export default function Home() {
           onClick={() => setActiveTab('batch')}
         >
           Batch Upload (CSV)
+        </button>
+        <button
+          style={activeTab === 'history' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('history')}
+        >
+          History
         </button>
       </div>
 
@@ -438,9 +509,108 @@ export default function Home() {
         </>
       )}
 
+      {/* History Tab */}
+      {activeTab === 'history' && (
+        <>
+          {/* History Stats */}
+          {historyStats && historyStats.total_predictions > 0 && (
+            <div style={styles.historyStats}>
+              <div style={styles.summaryGrid}>
+                <div style={styles.summaryCard}>
+                  <div style={styles.summaryValue}>{historyStats.total_predictions}</div>
+                  <div style={styles.summaryLabel}>Total Predictions</div>
+                </div>
+                <div style={{...styles.summaryCard, borderColor: '#dc2626'}}>
+                  <div style={{...styles.summaryValue, color: '#dc2626'}}>{historyStats.overall_churn_rate}%</div>
+                  <div style={styles.summaryLabel}>Churn Rate</div>
+                </div>
+                <div style={styles.summaryCard}>
+                  <div style={styles.summaryValue}>{historyStats.average_probability}%</div>
+                  <div style={styles.summaryLabel}>Avg Probability</div>
+                </div>
+                <div style={styles.summaryCard}>
+                  <button onClick={handleClearHistory} style={styles.clearButton}>
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              {/* Risk Distribution */}
+              {historyStats.risk_distribution && Object.keys(historyStats.risk_distribution).length > 0 && (
+                <div style={styles.riskDistribution}>
+                  <h4 style={styles.chartTitle}>Historical Risk Distribution</h4>
+                  <div style={styles.riskBars}>
+                    {Object.entries(historyStats.risk_distribution).map(([level, count]) => (
+                      <div key={level} style={styles.riskBarItem}>
+                        <div style={styles.riskBarLabel}>{level}</div>
+                        <div style={styles.riskBarTrack}>
+                          <div style={{
+                            ...styles.riskBarFill,
+                            width: `${(count / historyStats.total_predictions) * 100}%`,
+                            backgroundColor: getRiskColor(level)
+                          }} />
+                        </div>
+                        <div style={styles.riskBarCount}>{count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* History Table */}
+          <div style={styles.tableContainer}>
+            <h4 style={styles.chartTitle}>Recent Predictions</h4>
+            {historyLoading ? (
+              <div style={styles.loading}>Loading history...</div>
+            ) : history.length === 0 ? (
+              <div style={styles.emptyState}>
+                <p>No predictions yet. Make some predictions to see them here!</p>
+              </div>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Time</th>
+                    <th style={styles.th}>Type</th>
+                    <th style={styles.th}>Probability</th>
+                    <th style={styles.th}>Risk</th>
+                    <th style={styles.th}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((pred) => (
+                    <tr key={pred.id} style={pred.will_churn ? styles.trChurn : styles.tr}>
+                      <td style={styles.td}>{new Date(pred.created_at).toLocaleString()}</td>
+                      <td style={styles.td}>
+                        <span style={{...styles.typeBadge, backgroundColor: pred.prediction_type === 'batch' ? '#8b5cf6' : '#3b82f6'}}>
+                          {pred.prediction_type}
+                        </span>
+                      </td>
+                      <td style={styles.td}>{pred.churn_probability}%</td>
+                      <td style={styles.td}>
+                        <span style={{...styles.tableBadge, backgroundColor: getRiskColor(pred.risk_level)}}>
+                          {pred.risk_level}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <button onClick={() => handleDeleteHistory(pred.id)} style={styles.deleteButton}>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
       {/* Footer */}
       <p style={styles.footer}>
-        ChurnShield AI v2.1 • XGBoost • {metrics ? `${metrics.total_samples?.toLocaleString()} samples` : ''}
+        ChurnShield AI v2.2 • XGBoost • {metrics ? `${metrics.total_samples?.toLocaleString()} samples` : ''}
       </p>
     </div>
   )
@@ -527,6 +697,14 @@ const styles = {
   trChurn: { borderBottom: '1px solid #f3f4f6', backgroundColor: '#fef2f2' },
   td: { padding: '12px 16px' },
   tableBadge: { padding: '4px 10px', borderRadius: '12px', color: 'white', fontSize: '12px', fontWeight: '500' },
+  typeBadge: { padding: '4px 10px', borderRadius: '12px', color: 'white', fontSize: '11px', fontWeight: '500' },
+
+  // History
+  historyStats: { marginBottom: '24px' },
+  loading: { padding: '40px', textAlign: 'center', color: '#6b7280' },
+  emptyState: { padding: '40px', textAlign: 'center', color: '#6b7280' },
+  clearButton: { padding: '10px 16px', fontSize: '13px', fontWeight: '600', color: '#dc2626', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer' },
+  deleteButton: { padding: '6px 12px', fontSize: '12px', color: '#dc2626', backgroundColor: 'transparent', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer' },
 
   footer: { textAlign: 'center', color: '#9ca3af', fontSize: '12px', marginTop: '32px' },
 }
