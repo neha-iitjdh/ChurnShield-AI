@@ -1,11 +1,12 @@
 """
-Tests for the ChurnShield API v2.1
+Tests for the ChurnShield API v2.2
 
 Updated tests for:
 - XGBoost model
 - 13 features
 - /metrics endpoint
-- Batch predictions (NEW!)
+- Batch predictions
+- Prediction history (NEW!)
 """
 
 import pytest
@@ -31,7 +32,7 @@ def test_root_endpoint():
     assert response.status_code == 200
     data = response.json()
     assert "ChurnShield" in data["message"]
-    assert data["version"] == "2.1.0"
+    assert data["version"] == "2.2.0"
     assert data["model"] == "XGBoost"
 
 
@@ -261,3 +262,30 @@ C002,Male,60"""
     # Either shows missing columns or processing error
     detail = response.json()["detail"]
     assert "Missing required columns" in detail or "Error processing" in detail
+
+
+# ============================================================
+# Test 12: History endpoint
+# ============================================================
+def test_history_endpoint():
+    """Test the history endpoint returns predictions."""
+    response = client.get("/history")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "predictions" in data
+    assert "total" in data
+
+
+# ============================================================
+# Test 13: History stats endpoint
+# ============================================================
+def test_history_stats_endpoint():
+    """Test the history stats endpoint."""
+    response = client.get("/history/stats")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "total_predictions" in data
+    assert "overall_churn_rate" in data
+    assert "risk_distribution" in data

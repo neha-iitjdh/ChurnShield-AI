@@ -1,11 +1,12 @@
 """
-FastAPI Backend - ChurnShield AI v2.1
+FastAPI Backend - ChurnShield AI v2.2
 
 Features:
 - Single customer prediction
 - Batch predictions (CSV upload)
 - Model metrics and feature importance
 - Risk distribution analytics
+- Prediction history (NEW!)
 """
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
@@ -19,9 +20,11 @@ import io
 try:
     from model import ChurnModel
     from load_data import load_telco_data, prepare_data
+    from database import save_prediction, get_predictions, get_prediction_stats, delete_prediction, clear_history
 except ImportError:
     from src.model import ChurnModel
     from src.load_data import load_telco_data, prepare_data
+    from src.database import save_prediction, get_predictions, get_prediction_stats, delete_prediction, clear_history
 
 # ============================================================
 # Create FastAPI app
@@ -29,8 +32,8 @@ except ImportError:
 
 app = FastAPI(
     title="ChurnShield AI",
-    description="Predict customer churn using XGBoost ML - Now with batch predictions!",
-    version="2.1.0"
+    description="Predict customer churn using XGBoost ML - With batch predictions & history!",
+    version="2.2.0"
 )
 
 # CORS middleware
@@ -95,6 +98,33 @@ class MetricsResponse(BaseModel):
     feature_importance: dict
 
 
+class HistoryItem(BaseModel):
+    """Single prediction history item."""
+    id: int
+    customer_id: Optional[str]
+    customer_data: dict
+    churn_probability: float
+    risk_level: str
+    will_churn: bool
+    prediction_type: str
+    created_at: str
+
+
+class HistoryResponse(BaseModel):
+    """Prediction history response."""
+    predictions: List[HistoryItem]
+    total: int
+
+
+class HistoryStatsResponse(BaseModel):
+    """Prediction history statistics."""
+    total_predictions: int
+    overall_churn_rate: float
+    average_probability: float
+    risk_distribution: dict
+    recent_trend: List[dict]
+
+
 # ============================================================
 # Initialize and train model
 # ============================================================
@@ -121,13 +151,15 @@ def root():
     """Root endpoint - API info."""
     return {
         "message": "Welcome to ChurnShield AI!",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "model": "XGBoost",
         "features": 13,
         "endpoints": {
             "predict": "/predict (POST) - Single customer",
             "batch": "/predict/batch (POST) - CSV upload",
             "metrics": "/metrics (GET) - Model performance",
+            "history": "/history (GET) - Prediction history",
+            "stats": "/history/stats (GET) - History statistics",
             "docs": "/docs - API documentation"
         }
     }
@@ -165,7 +197,18 @@ def predict_churn(customer: CustomerInput):
         raise HTTPException(status_code=503, detail="Model not trained")
 
     try:
-        result = model.predict(customer.model_dump())
+        customer_data = customer.model_dump()
+        result = model.predict(customer_data)
+
+        # Save to history
+        save_prediction(
+            customer_data=customer_data,
+            churn_probability=result['churn_probability'],
+            risk_level=result['risk_level'],
+            will_churn=result['will_churn'],
+            prediction_type='single'
+        )
+
         return PredictionResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction failed: {str(e)}")
@@ -247,8 +290,20 @@ async def predict_batch(file: UploadFile = File(...)):
             result = model.predict(customer_data)
             risk_counts[result['risk_level']] += 1
 
+            customer_id_str = str(row[id_column]) if id_column else f"row_{idx}"
+
+            # Save to history
+            save_prediction(
+                customer_data=customer_data,
+                churn_probability=result['churn_probability'],
+                risk_level=result['risk_level'],
+                will_churn=result['will_churn'],
+                customer_id=customer_id_str,
+                prediction_type='batch'
+            )
+
             predictions.append(BatchPredictionItem(
-                customer_id=str(row[id_column]) if id_column else f"row_{idx}",
+                customer_id=customer_id_str,
                 churn_probability=result['churn_probability'],
                 risk_level=result['risk_level'],
                 will_churn=result['will_churn']
@@ -277,6 +332,43 @@ async def predict_batch(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="CSV file is empty")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error processing file: {str(e)}")
+
+
+# ============================================================
+# History Endpoints
+# ============================================================
+
+
+@app.get("/history", response_model=HistoryResponse)
+def get_history(limit: int = 50, offset: int = 0):
+    """Get prediction history with pagination."""
+    predictions = get_predictions(limit=limit, offset=offset)
+    return HistoryResponse(
+        predictions=predictions,
+        total=len(predictions)
+    )
+
+
+@app.get("/history/stats", response_model=HistoryStatsResponse)
+def get_history_stats():
+    """Get prediction history statistics."""
+    stats = get_prediction_stats()
+    return HistoryStatsResponse(**stats)
+
+
+@app.delete("/history/{prediction_id}")
+def delete_history_item(prediction_id: int):
+    """Delete a single prediction from history."""
+    if delete_prediction(prediction_id):
+        return {"message": "Prediction deleted", "id": prediction_id}
+    raise HTTPException(status_code=404, detail="Prediction not found")
+
+
+@app.delete("/history")
+def clear_all_history():
+    """Clear all prediction history."""
+    count = clear_history()
+    return {"message": "History cleared", "deleted_count": count}
 
 
 # ============================================================
