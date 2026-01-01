@@ -86,7 +86,7 @@ export default function Home() {
       <p style={styles.subtitle}>Predict customer churn with XGBoost ML</p>
 
       {/* Model Accuracy Badge */}
-      {metrics && (
+      {metrics && metrics.accuracy && (
         <div style={styles.badge}>
           Model Accuracy: {metrics.accuracy}%
         </div>
