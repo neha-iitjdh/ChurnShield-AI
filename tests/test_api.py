@@ -19,7 +19,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from api import app
 
-client = TestClient(app)
+# Use lifespan context to trigger model initialization
+client = TestClient(app, raise_server_exceptions=True)
+client.__enter__()
 
 
 # ============================================================
