@@ -1,0 +1,11 @@
+customerID,gender,SeniorCitizen,Partner,Dependents,tenure,Contract,PaperlessBilling,PaymentMethod,InternetService,OnlineSecurity,TechSupport,MonthlyCharges,TotalCharges
+C001,Female,0,No,No,2,Month-to-month,Yes,Electronic check,Fiber optic,No,No,89.50,179.00
+C002,Male,0,Yes,Yes,60,Two year,No,Bank transfer (automatic),DSL,Yes,Yes,45.00,2700.00
+C003,Female,1,No,No,5,Month-to-month,Yes,Electronic check,Fiber optic,No,No,95.00,475.00
+C004,Male,0,Yes,No,36,One year,Yes,Credit card (automatic),DSL,Yes,No,65.00,2340.00
+C005,Female,0,No,Yes,12,Month-to-month,Yes,Mailed check,Fiber optic,No,Yes,75.00,900.00
+C006,Male,1,Yes,No,48,Two year,No,Bank transfer (automatic),DSL,Yes,Yes,55.00,2640.00
+C007,Female,0,No,No,1,Month-to-month,Yes,Electronic check,Fiber optic,No,No,99.00,99.00
+C008,Male,0,Yes,Yes,72,Two year,No,Credit card (automatic),DSL,Yes,Yes,40.00,2880.00
+C009,Female,0,No,No,8,Month-to-month,Yes,Electronic check,Fiber optic,No,No,85.00,680.00
+C010,Male,0,Yes,No,24,One year,No,Bank transfer (automatic),DSL,Yes,Yes,50.00,1200.00
