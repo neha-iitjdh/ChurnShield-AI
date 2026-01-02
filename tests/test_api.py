@@ -15,19 +15,26 @@ import sys
 import os
 import io
 
+# Set testing flag BEFORE any imports
+os.environ["TESTING"] = "1"
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from api import app
+# Import and initialize model
+from model import ChurnModel
+from load_data import load_telco_data, prepare_data
 
-# Initialize model at module load for tests
+_model = ChurnModel()
+_raw_data = load_telco_data()
+_training_data = prepare_data(_raw_data)
+_model.train(_training_data)
+
+# Import api and set the pre-trained model
 import api as api_module
-if api_module.model is None:
-    from model import ChurnModel
-    from load_data import load_telco_data, prepare_data
-    api_module.model = ChurnModel()
-    raw_data = load_telco_data()
-    training_data = prepare_data(raw_data)
-    api_module.model.train(training_data)
+api_module.model = _model
+api_module.model_loading = False
+
+from api import app
 
 client = TestClient(app)
 

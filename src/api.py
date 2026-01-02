@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import pandas as pd
 import io
+import os
 import threading
 
 # Handle imports for both local run and Docker
@@ -61,8 +62,9 @@ app = FastAPI(
     version="2.2.0"
 )
 
-# Start model initialization in background thread immediately
-threading.Thread(target=init_model, daemon=True).start()
+# Start model initialization in background thread (skip during tests)
+if os.environ.get("TESTING") != "1":
+    threading.Thread(target=init_model, daemon=True).start()
 
 # CORS middleware
 app.add_middleware(
