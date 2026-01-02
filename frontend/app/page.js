@@ -1,20 +1,16 @@
 'use client'
 
 /**
- * ChurnShield AI - Frontend v2.4
+ * ChurnShield AI - Frontend v3.0
  *
- * Features:
- * - Single customer prediction with 13 features
- * - Batch CSV upload with visualizations
- * - Feature importance chart
- * - Churn risk gauge
- * - Risk factor breakdown
- * - Retention recommendations
- * - What-if comparison mode
- * - Customer segments
- * - Prediction history with stats
- * - Dashboard Analytics (NEW!)
- * - Trend charts & KPIs (NEW!)
+ * CRM-Style Interface with:
+ * - Sidebar navigation
+ * - Customer health scores
+ * - Actionable insights panels
+ * - Quick actions & workflows
+ * - Modern CRM dashboard
+ * - Customer lifecycle tracking
+ * - Retention campaign suggestions
  */
 
 import { useState, useEffect } from 'react'
@@ -374,82 +370,120 @@ export default function Home() {
     return batchResults.predictions.filter(p => p.risk_level === selectedSegment)
   }
 
+  // Calculate customer health score (0-100)
+  const calculateHealthScore = () => {
+    if (!historyStats || historyStats.total_predictions === 0) return null
+    const churnRate = historyStats.overall_churn_rate || 0
+    return Math.round(100 - churnRate)
+  }
+
+  const healthScore = calculateHealthScore()
+
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>ChurnShield AI</h1>
-      <p style={styles.subtitle}>Predict customer churn with XGBoost ML</p>
-
-      {/* Model Stats */}
-      {metrics && metrics.accuracy && (
-        <div style={styles.statsRow}>
-          <div style={styles.statCard}>
-            <div style={styles.statValue}>{metrics.accuracy}%</div>
-            <div style={styles.statLabel}>Model Accuracy</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statValue}>{metrics.total_samples?.toLocaleString()}</div>
-            <div style={styles.statLabel}>Training Samples</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statValue}>13</div>
-            <div style={styles.statLabel}>Features</div>
+    <div style={styles.appContainer}>
+      {/* Sidebar Navigation */}
+      <div style={styles.sidebar}>
+        <div style={styles.sidebarHeader}>
+          <div style={styles.sidebarLogo}>🛡️</div>
+          <div style={styles.sidebarBrand}>
+            <span style={styles.sidebarTitle}>ChurnShield</span>
+            <span style={styles.sidebarSubtitle}>AI Platform</span>
           </div>
         </div>
-      )}
 
-      {/* Feature Importance Chart */}
-      {metrics && metrics.feature_importance && (
-        <div style={styles.chartSection}>
-          <h3 style={styles.chartTitle}>Feature Importance - What Drives Churn?</h3>
-          <div style={styles.chartContainer}>
-            {Object.entries(metrics.feature_importance)
-              .slice(0, 6)
-              .map(([feature, importance]) => (
-                <div key={feature} style={styles.barRow}>
-                  <div style={styles.barLabel}>{feature}</div>
-                  <div style={styles.barTrack}>
-                    <div
-                      style={{
-                        ...styles.barFill,
-                        width: `${Math.min(importance, 100)}%`,
-                        backgroundColor: importance > 20 ? '#ef4444' : importance > 10 ? '#f59e0b' : '#3b82f6'
-                      }}
-                    />
-                  </div>
-                  <div style={styles.barValue}>{importance}%</div>
-                </div>
-              ))}
+        <nav style={styles.sidebarNav}>
+          <button
+            style={activeTab === 'dashboard' ? styles.navItemActive : styles.navItem}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <span style={styles.navIcon}>📊</span>
+            <span>Dashboard</span>
+          </button>
+          <button
+            style={activeTab === 'single' ? styles.navItemActive : styles.navItem}
+            onClick={() => setActiveTab('single')}
+          >
+            <span style={styles.navIcon}>👤</span>
+            <span>Customer Analysis</span>
+          </button>
+          <button
+            style={activeTab === 'batch' ? styles.navItemActive : styles.navItem}
+            onClick={() => setActiveTab('batch')}
+          >
+            <span style={styles.navIcon}>📁</span>
+            <span>Batch Import</span>
+          </button>
+          <button
+            style={activeTab === 'history' ? styles.navItemActive : styles.navItem}
+            onClick={() => setActiveTab('history')}
+          >
+            <span style={styles.navIcon}>📋</span>
+            <span>Prediction Log</span>
+          </button>
+        </nav>
+
+        {/* Sidebar Quick Stats */}
+        <div style={styles.sidebarStats}>
+          <div style={styles.sidebarStatItem}>
+            <span style={styles.sidebarStatLabel}>Model Accuracy</span>
+            <span style={styles.sidebarStatValue}>{metrics?.accuracy || '--'}%</span>
+          </div>
+          <div style={styles.sidebarStatItem}>
+            <span style={styles.sidebarStatLabel}>Total Analyzed</span>
+            <span style={styles.sidebarStatValue}>{historyStats?.total_predictions || 0}</span>
           </div>
         </div>
-      )}
 
-      {/* Tabs */}
-      <div style={styles.tabs}>
-        <button
-          style={activeTab === 'dashboard' ? styles.tabActive : styles.tab}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          Dashboard
-        </button>
-        <button
-          style={activeTab === 'single' ? styles.tabActive : styles.tab}
-          onClick={() => setActiveTab('single')}
-        >
-          Predict
-        </button>
-        <button
-          style={activeTab === 'batch' ? styles.tabActive : styles.tab}
-          onClick={() => setActiveTab('batch')}
-        >
-          Batch CSV
-        </button>
-        <button
-          style={activeTab === 'history' ? styles.tabActive : styles.tab}
-          onClick={() => setActiveTab('history')}
-        >
-          History
-        </button>
+        <div style={styles.sidebarFooter}>
+          <span>v3.0 • XGBoost</span>
+        </div>
       </div>
+
+      {/* Main Content */}
+      <div style={styles.mainContent}>
+        {/* Top Bar */}
+        <div style={styles.topBar}>
+          <div style={styles.topBarLeft}>
+            <h1 style={styles.pageTitle}>
+              {activeTab === 'dashboard' && '📊 Analytics Dashboard'}
+              {activeTab === 'single' && '👤 Customer Analysis'}
+              {activeTab === 'batch' && '📁 Batch Import'}
+              {activeTab === 'history' && '📋 Prediction Log'}
+            </h1>
+            <span style={styles.breadcrumb}>ChurnShield AI / {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</span>
+          </div>
+          <div style={styles.topBarRight}>
+            {healthScore !== null && (
+              <div style={styles.healthScoreWidget}>
+                <div style={styles.healthScoreCircle}>
+                  <svg viewBox="0 0 36 36" style={styles.healthScoreSvg}>
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#e5e7eb"
+                      strokeWidth="3"
+                    />
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke={healthScore >= 70 ? '#22c55e' : healthScore >= 40 ? '#f59e0b' : '#ef4444'}
+                      strokeWidth="3"
+                      strokeDasharray={`${healthScore}, 100`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span style={styles.healthScoreValue}>{healthScore}</span>
+                </div>
+                <div style={styles.healthScoreInfo}>
+                  <span style={styles.healthScoreLabel}>Customer Health</span>
+                  <span style={{...styles.healthScoreStatus, color: healthScore >= 70 ? '#22c55e' : healthScore >= 40 ? '#f59e0b' : '#ef4444'}}>
+                    {healthScore >= 70 ? 'Healthy' : healthScore >= 40 ? 'At Risk' : 'Critical'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
       {/* Error Display */}
       {error && <div style={styles.error}>{error}</div>}
@@ -457,218 +491,329 @@ export default function Home() {
       {/* Dashboard Tab */}
       {activeTab === 'dashboard' && (
         <div style={styles.dashboardContainer}>
+          {/* Quick Actions Bar */}
+          <div style={styles.quickActionsBar}>
+            <button style={styles.quickAction} onClick={() => setActiveTab('single')}>
+              <span style={styles.quickActionIcon}>➕</span>
+              <span>New Analysis</span>
+            </button>
+            <button style={styles.quickAction} onClick={() => setActiveTab('batch')}>
+              <span style={styles.quickActionIcon}>📤</span>
+              <span>Import CSV</span>
+            </button>
+            <button style={styles.quickAction} onClick={() => setActiveTab('history')}>
+              <span style={styles.quickActionIcon}>📋</span>
+              <span>View Log</span>
+            </button>
+          </div>
+
           {/* KPI Cards */}
           <div style={styles.kpiGrid}>
-            <div style={{...styles.kpiCard, borderColor: '#3b82f6'}}>
-              <div style={styles.kpiIcon}>📊</div>
-              <div style={styles.kpiContent}>
-                <div style={styles.kpiValue}>{historyStats?.total_predictions || 0}</div>
-                <div style={styles.kpiLabel}>Total Predictions</div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiHeader}>
+                <span style={styles.kpiIconSmall}>👥</span>
+                <span style={styles.kpiTrend}>Total</span>
+              </div>
+              <div style={styles.kpiValue}>{historyStats?.total_predictions || 0}</div>
+              <div style={styles.kpiLabel}>Customers Analyzed</div>
+              <div style={styles.kpiProgress}>
+                <div style={{...styles.kpiProgressBar, width: '100%', background: '#3b82f6'}}></div>
               </div>
             </div>
-            <div style={{...styles.kpiCard, borderColor: '#ef4444'}}>
-              <div style={styles.kpiIcon}>⚠️</div>
-              <div style={styles.kpiContent}>
-                <div style={{...styles.kpiValue, color: '#ef4444'}}>{historyStats?.overall_churn_rate || 0}%</div>
-                <div style={styles.kpiLabel}>Overall Churn Rate</div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiHeader}>
+                <span style={styles.kpiIconSmall}>⚠️</span>
+                <span style={{...styles.kpiTrend, color: '#ef4444'}}>Alert</span>
+              </div>
+              <div style={{...styles.kpiValue, color: '#ef4444'}}>{historyStats?.overall_churn_rate || 0}%</div>
+              <div style={styles.kpiLabel}>Churn Rate</div>
+              <div style={styles.kpiProgress}>
+                <div style={{...styles.kpiProgressBar, width: `${historyStats?.overall_churn_rate || 0}%`, background: '#ef4444'}}></div>
               </div>
             </div>
-            <div style={{...styles.kpiCard, borderColor: '#f59e0b'}}>
-              <div style={styles.kpiIcon}>📈</div>
-              <div style={styles.kpiContent}>
-                <div style={{...styles.kpiValue, color: '#f59e0b'}}>{historyStats?.average_probability || 0}%</div>
-                <div style={styles.kpiLabel}>Avg Churn Probability</div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiHeader}>
+                <span style={styles.kpiIconSmall}>🎯</span>
+                <span style={styles.kpiTrend}>Avg</span>
+              </div>
+              <div style={{...styles.kpiValue, color: '#f59e0b'}}>{historyStats?.average_probability || 0}%</div>
+              <div style={styles.kpiLabel}>Risk Probability</div>
+              <div style={styles.kpiProgress}>
+                <div style={{...styles.kpiProgressBar, width: `${historyStats?.average_probability || 0}%`, background: '#f59e0b'}}></div>
               </div>
             </div>
-            <div style={{...styles.kpiCard, borderColor: '#22c55e'}}>
-              <div style={styles.kpiIcon}>✅</div>
-              <div style={styles.kpiContent}>
-                <div style={{...styles.kpiValue, color: '#22c55e'}}>{metrics?.accuracy || 0}%</div>
-                <div style={styles.kpiLabel}>Model Accuracy</div>
+            <div style={styles.kpiCard}>
+              <div style={styles.kpiHeader}>
+                <span style={styles.kpiIconSmall}>✅</span>
+                <span style={{...styles.kpiTrend, color: '#22c55e'}}>Model</span>
+              </div>
+              <div style={{...styles.kpiValue, color: '#22c55e'}}>{metrics?.accuracy || 0}%</div>
+              <div style={styles.kpiLabel}>Prediction Accuracy</div>
+              <div style={styles.kpiProgress}>
+                <div style={{...styles.kpiProgressBar, width: `${metrics?.accuracy || 0}%`, background: '#22c55e'}}></div>
               </div>
             </div>
           </div>
 
-          {/* Trend Chart - Line graph of recent predictions */}
-          {historyStats?.recent_trend && historyStats.recent_trend.length > 0 && (
-            <div style={styles.trendSection}>
-              <h3 style={styles.chartTitle}>Churn Probability Trend (Recent Predictions)</h3>
-              <div style={styles.trendChart}>
-                <svg viewBox="0 0 600 200" style={styles.trendSvg}>
-                  {/* Grid lines */}
-                  {[0, 25, 50, 75, 100].map((val, i) => (
-                    <g key={val}>
-                      <line x1="50" y1={180 - val * 1.6} x2="580" y2={180 - val * 1.6} stroke="#e5e7eb" strokeWidth="1" />
-                      <text x="40" y={185 - val * 1.6} fontSize="10" fill="#9ca3af" textAnchor="end">{val}%</text>
-                    </g>
-                  ))}
-
-                  {/* Trend line */}
-                  <polyline
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={historyStats.recent_trend.map((item, idx) => {
-                      const x = 60 + (idx * (520 / Math.max(historyStats.recent_trend.length - 1, 1)))
-                      const y = 180 - (item.avg_probability * 1.6)
-                      return `${x},${y}`
-                    }).join(' ')}
-                  />
-
-                  {/* Data points */}
-                  {historyStats.recent_trend.map((item, idx) => {
-                    const x = 60 + (idx * (520 / Math.max(historyStats.recent_trend.length - 1, 1)))
-                    const y = 180 - (item.avg_probability * 1.6)
-                    return (
-                      <g key={idx}>
-                        <circle cx={x} cy={y} r="6" fill="#3b82f6" />
-                        <circle cx={x} cy={y} r="3" fill="white" />
-                        <text x={x} y={195} fontSize="9" fill="#6b7280" textAnchor="middle">
-                          {item.date?.slice(5) || `#${idx + 1}`}
-                        </text>
-                      </g>
-                    )
-                  })}
-                </svg>
+          {/* Main Dashboard Grid */}
+          <div style={styles.dashboardGrid}>
+            {/* Left Column - Charts */}
+            <div style={styles.dashboardLeft}>
+              {/* Risk Distribution Card */}
+              <div style={styles.crmCard}>
+                <div style={styles.crmCardHeader}>
+                  <h3 style={styles.crmCardTitle}>Customer Risk Segments</h3>
+                  <span style={styles.crmCardBadge}>Live</span>
+                </div>
+                {historyStats?.risk_distribution && Object.keys(historyStats.risk_distribution).length > 0 ? (
+                  <div style={styles.riskSegmentsGrid}>
+                    {['Critical', 'High', 'Medium', 'Low'].map(level => {
+                      const count = historyStats.risk_distribution[level] || 0
+                      const total = historyStats.total_predictions || 1
+                      const percentage = Math.round((count / total) * 100)
+                      return (
+                        <div key={level} style={styles.riskSegmentCard}>
+                          <div style={{...styles.riskSegmentIndicator, background: getRiskColor(level)}}></div>
+                          <div style={styles.riskSegmentContent}>
+                            <span style={styles.riskSegmentLabel}>{level}</span>
+                            <span style={styles.riskSegmentCount}>{count}</span>
+                            <span style={styles.riskSegmentPercent}>{percentage}%</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div style={styles.emptySegments}>No segment data available</div>
+                )}
               </div>
-            </div>
-          )}
 
-          {/* Risk Distribution Donut Chart */}
-          {historyStats?.risk_distribution && Object.keys(historyStats.risk_distribution).length > 0 && (
-            <div style={styles.analyticsGrid}>
-              <div style={styles.analyticsCard}>
-                <h3 style={styles.chartTitle}>Risk Level Distribution</h3>
-                <div style={styles.donutContainer}>
-                  <svg viewBox="0 0 200 200" style={styles.donutChart}>
-                    {(() => {
-                      const total = Object.values(historyStats.risk_distribution).reduce((a, b) => a + b, 0)
-                      if (total === 0) return null
-                      let currentAngle = -90
-                      const colors = { Low: '#22c55e', Medium: '#f59e0b', High: '#ef4444', Critical: '#dc2626' }
-
-                      return Object.entries(historyStats.risk_distribution).map(([level, count]) => {
-                        if (count === 0) return null
-                        const percentage = count / total
-                        const angle = percentage * 360
-                        const startAngle = currentAngle
-                        const endAngle = currentAngle + angle
-                        currentAngle = endAngle
-
-                        const startRad = startAngle * Math.PI / 180
-                        const endRad = endAngle * Math.PI / 180
-                        const x1 = 100 + 70 * Math.cos(startRad)
-                        const y1 = 100 + 70 * Math.sin(startRad)
-                        const x2 = 100 + 70 * Math.cos(endRad)
-                        const y2 = 100 + 70 * Math.sin(endRad)
-                        const largeArc = angle > 180 ? 1 : 0
-
+              {/* Trend Chart */}
+              {historyStats?.recent_trend && historyStats.recent_trend.length > 0 && (
+                <div style={styles.crmCard}>
+                  <div style={styles.crmCardHeader}>
+                    <h3 style={styles.crmCardTitle}>Churn Trend Analysis</h3>
+                    <span style={styles.crmCardSubtitle}>Last 7 days</span>
+                  </div>
+                  <div style={styles.trendChart}>
+                    <svg viewBox="0 0 600 180" style={styles.trendSvg}>
+                      {/* Grid lines */}
+                      {[0, 25, 50, 75, 100].map((val) => (
+                        <g key={val}>
+                          <line x1="50" y1={160 - val * 1.4} x2="580" y2={160 - val * 1.4} stroke="#f1f5f9" strokeWidth="1" />
+                          <text x="40" y={165 - val * 1.4} fontSize="10" fill="#94a3b8" textAnchor="end">{val}%</text>
+                        </g>
+                      ))}
+                      {/* Area fill */}
+                      <defs>
+                        <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3"/>
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05"/>
+                        </linearGradient>
+                      </defs>
+                      <path
+                        fill="url(#areaGradient)"
+                        d={`M 60 160 ${historyStats.recent_trend.map((item, idx) => {
+                          const x = 60 + (idx * (520 / Math.max(historyStats.recent_trend.length - 1, 1)))
+                          const y = 160 - (item.avg_probability * 1.4)
+                          return `L ${x} ${y}`
+                        }).join(' ')} L ${60 + (520)} 160 Z`}
+                      />
+                      {/* Trend line */}
+                      <polyline
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        points={historyStats.recent_trend.map((item, idx) => {
+                          const x = 60 + (idx * (520 / Math.max(historyStats.recent_trend.length - 1, 1)))
+                          const y = 160 - (item.avg_probability * 1.4)
+                          return `${x},${y}`
+                        }).join(' ')}
+                      />
+                      {/* Data points */}
+                      {historyStats.recent_trend.map((item, idx) => {
+                        const x = 60 + (idx * (520 / Math.max(historyStats.recent_trend.length - 1, 1)))
+                        const y = 160 - (item.avg_probability * 1.4)
                         return (
-                          <path
-                            key={level}
-                            d={`M 100 100 L ${x1} ${y1} A 70 70 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                            fill={colors[level] || '#6b7280'}
-                            stroke="white"
-                            strokeWidth="2"
-                          />
+                          <g key={idx}>
+                            <circle cx={x} cy={y} r="5" fill="#3b82f6" />
+                            <circle cx={x} cy={y} r="2.5" fill="white" />
+                          </g>
                         )
-                      })
-                    })()}
-                    <circle cx="100" cy="100" r="40" fill="white" />
-                    <text x="100" y="95" fontSize="20" fontWeight="bold" textAnchor="middle" fill="#1f2937">
-                      {historyStats?.total_predictions || 0}
-                    </text>
-                    <text x="100" y="115" fontSize="10" textAnchor="middle" fill="#6b7280">
-                      Total
-                    </text>
-                  </svg>
-                  <div style={styles.donutLegend}>
-                    {Object.entries(historyStats.risk_distribution).map(([level, count]) => (
-                      <div key={level} style={styles.legendRow}>
-                        <span style={{...styles.legendDot, backgroundColor: getRiskColor(level)}}></span>
-                        <span style={styles.legendText}>{level}</span>
-                        <span style={styles.legendCount}>{count}</span>
+                      })}
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              {/* Feature Importance */}
+              {metrics?.feature_importance && (
+                <div style={styles.crmCard}>
+                  <div style={styles.crmCardHeader}>
+                    <h3 style={styles.crmCardTitle}>Churn Drivers</h3>
+                    <span style={styles.crmCardSubtitle}>Top factors</span>
+                  </div>
+                  <div style={styles.driversGrid}>
+                    {Object.entries(metrics.feature_importance).slice(0, 5).map(([feature, importance]) => (
+                      <div key={feature} style={styles.driverItem}>
+                        <div style={styles.driverHeader}>
+                          <span style={styles.driverName}>{feature}</span>
+                          <span style={styles.driverValue}>{importance}%</span>
+                        </div>
+                        <div style={styles.driverBar}>
+                          <div style={{
+                            ...styles.driverBarFill,
+                            width: `${importance}%`,
+                            background: importance > 20 ? '#ef4444' : importance > 10 ? '#f59e0b' : '#3b82f6'
+                          }}></div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Right Column - Insights & Actions */}
+            <div style={styles.dashboardRight}>
+              {/* Actionable Insights Panel */}
+              <div style={styles.insightsPanel}>
+                <div style={styles.insightsPanelHeader}>
+                  <span style={styles.insightsPanelIcon}>💡</span>
+                  <h3 style={styles.insightsPanelTitle}>Actionable Insights</h3>
+                </div>
+                <div style={styles.insightCards}>
+                  {historyStats?.total_predictions > 0 ? (
+                    <>
+                      {/* Urgent Alert */}
+                      {((historyStats?.risk_distribution?.High || 0) + (historyStats?.risk_distribution?.Critical || 0)) > 0 && (
+                        <div style={{...styles.insightCard, borderLeftColor: '#ef4444'}}>
+                          <div style={styles.insightCardHeader}>
+                            <span style={styles.insightCardIcon}>🚨</span>
+                            <span style={styles.insightCardPriority}>Urgent</span>
+                          </div>
+                          <p style={styles.insightCardText}>
+                            <strong>{(historyStats?.risk_distribution?.High || 0) + (historyStats?.risk_distribution?.Critical || 0)}</strong> customers need immediate attention.
+                            Consider launching a retention campaign.
+                          </p>
+                          <button style={styles.insightCardAction} onClick={() => setActiveTab('history')}>View At-Risk Customers →</button>
+                        </div>
+                      )}
+
+                      {/* Opportunity */}
+                      {(historyStats?.risk_distribution?.Medium || 0) > 0 && (
+                        <div style={{...styles.insightCard, borderLeftColor: '#f59e0b'}}>
+                          <div style={styles.insightCardHeader}>
+                            <span style={styles.insightCardIcon}>🎯</span>
+                            <span style={{...styles.insightCardPriority, background: '#fef3c7', color: '#92400e'}}>Opportunity</span>
+                          </div>
+                          <p style={styles.insightCardText}>
+                            <strong>{historyStats?.risk_distribution?.Medium || 0}</strong> customers at medium risk.
+                            Proactive engagement could prevent {Math.round((historyStats?.risk_distribution?.Medium || 0) * 0.3)} potential churns.
+                          </p>
+                          <button style={{...styles.insightCardAction, color: '#d97706'}}>Launch Engagement Campaign →</button>
+                        </div>
+                      )}
+
+                      {/* Positive */}
+                      {(historyStats?.risk_distribution?.Low || 0) > 0 && (
+                        <div style={{...styles.insightCard, borderLeftColor: '#22c55e'}}>
+                          <div style={styles.insightCardHeader}>
+                            <span style={styles.insightCardIcon}>✨</span>
+                            <span style={{...styles.insightCardPriority, background: '#dcfce7', color: '#166534'}}>Positive</span>
+                          </div>
+                          <p style={styles.insightCardText}>
+                            <strong>{historyStats?.risk_distribution?.Low || 0}</strong> loyal customers identified.
+                            Great candidates for referral or upsell programs.
+                          </p>
+                          <button style={{...styles.insightCardAction, color: '#16a34a'}}>Create Loyalty Rewards →</button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={styles.noInsights}>
+                      <span style={styles.noInsightsIcon}>📊</span>
+                      <p>Analyze customers to generate insights</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Quick Stats */}
-              <div style={styles.analyticsCard}>
-                <h3 style={styles.chartTitle}>Quick Insights</h3>
-                <div style={styles.insightsList}>
-                  <div style={styles.insightItem}>
-                    <span style={styles.insightLabel}>Highest Risk Segment</span>
-                    <span style={{...styles.insightValue, color: '#ef4444'}}>
-                      {historyStats?.risk_distribution ?
-                        Object.entries(historyStats.risk_distribution)
-                          .filter(([level]) => level !== 'Low')
-                          .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
-                        : 'N/A'}
-                    </span>
-                  </div>
-                  <div style={styles.insightItem}>
-                    <span style={styles.insightLabel}>Low Risk Customers</span>
-                    <span style={{...styles.insightValue, color: '#22c55e'}}>
-                      {historyStats?.risk_distribution?.Low || 0}
-                    </span>
-                  </div>
-                  <div style={styles.insightItem}>
-                    <span style={styles.insightLabel}>High + Critical Risk</span>
-                    <span style={{...styles.insightValue, color: '#dc2626'}}>
-                      {(historyStats?.risk_distribution?.High || 0) + (historyStats?.risk_distribution?.Critical || 0)}
-                    </span>
-                  </div>
-                  <div style={styles.insightItem}>
-                    <span style={styles.insightLabel}>Retention Opportunity</span>
-                    <span style={styles.insightValue}>
-                      {historyStats?.total_predictions ?
-                        Math.round(((historyStats?.risk_distribution?.Medium || 0) / historyStats.total_predictions) * 100)
-                        : 0}% at Medium Risk
-                    </span>
-                  </div>
+              {/* Recent Activity */}
+              <div style={styles.activityPanel}>
+                <div style={styles.activityHeader}>
+                  <h3 style={styles.activityTitle}>Recent Activity</h3>
+                  <button style={styles.activityViewAll} onClick={() => setActiveTab('history')}>View All</button>
+                </div>
+                <div style={styles.activityList}>
+                  {history.slice(0, 5).map((pred, idx) => (
+                    <div key={pred.id || idx} style={styles.activityItem}>
+                      <div style={{...styles.activityDot, background: getRiskColor(pred.risk_level)}}></div>
+                      <div style={styles.activityContent}>
+                        <span style={styles.activityText}>
+                          {pred.prediction_type === 'batch' ? 'Batch analysis' : 'Customer analyzed'} - {pred.risk_level} risk
+                        </span>
+                        <span style={styles.activityTime}>
+                          {new Date(pred.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <span style={{...styles.activityBadge, background: getRiskColor(pred.risk_level)}}>
+                        {pred.churn_probability}%
+                      </span>
+                    </div>
+                  ))}
+                  {history.length === 0 && (
+                    <div style={styles.noActivity}>No recent activity</div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Model Performance */}
-          {metrics && (
-            <div style={styles.modelPerformance}>
-              <h3 style={styles.chartTitle}>Model Performance</h3>
-              <div style={styles.perfGrid}>
-                <div style={styles.perfItem}>
-                  <div style={styles.perfLabel}>Training Samples</div>
-                  <div style={styles.perfValue}>{metrics.train_samples?.toLocaleString()}</div>
+              {/* Model Info */}
+              {metrics && (
+                <div style={styles.modelInfoCard}>
+                  <h4 style={styles.modelInfoTitle}>Model Information</h4>
+                  <div style={styles.modelInfoGrid}>
+                    <div style={styles.modelInfoItem}>
+                      <span style={styles.modelInfoLabel}>Algorithm</span>
+                      <span style={styles.modelInfoValue}>XGBoost</span>
+                    </div>
+                    <div style={styles.modelInfoItem}>
+                      <span style={styles.modelInfoLabel}>Training Data</span>
+                      <span style={styles.modelInfoValue}>{metrics.train_samples?.toLocaleString()}</span>
+                    </div>
+                    <div style={styles.modelInfoItem}>
+                      <span style={styles.modelInfoLabel}>Features</span>
+                      <span style={styles.modelInfoValue}>13</span>
+                    </div>
+                    <div style={styles.modelInfoItem}>
+                      <span style={styles.modelInfoLabel}>Accuracy</span>
+                      <span style={styles.modelInfoValue}>{metrics.accuracy}%</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={styles.perfItem}>
-                  <div style={styles.perfLabel}>Test Samples</div>
-                  <div style={styles.perfValue}>{metrics.test_samples?.toLocaleString()}</div>
-                </div>
-                <div style={styles.perfItem}>
-                  <div style={styles.perfLabel}>Total Dataset</div>
-                  <div style={styles.perfValue}>{metrics.total_samples?.toLocaleString()}</div>
-                </div>
-                <div style={styles.perfItem}>
-                  <div style={styles.perfLabel}>Features Used</div>
-                  <div style={styles.perfValue}>13</div>
-                </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* No data message */}
           {(!historyStats || historyStats.total_predictions === 0) && (
-            <div style={styles.noDataMessage}>
-              <div style={styles.noDataIcon}>📊</div>
-              <h3 style={styles.noDataTitle}>No Analytics Data Yet</h3>
-              <p style={styles.noDataText}>
-                Start making predictions to see analytics here.
-                Use the Predict or Batch CSV tabs to analyze customers.
+            <div style={styles.welcomeCard}>
+              <div style={styles.welcomeIcon}>👋</div>
+              <h2 style={styles.welcomeTitle}>Welcome to ChurnShield AI</h2>
+              <p style={styles.welcomeText}>
+                Start analyzing your customers to prevent churn and boost retention.
+                Use the sidebar navigation to get started.
               </p>
+              <div style={styles.welcomeActions}>
+                <button style={styles.welcomePrimary} onClick={() => setActiveTab('single')}>
+                  Analyze Single Customer
+                </button>
+                <button style={styles.welcomeSecondary} onClick={() => setActiveTab('batch')}>
+                  Import Customer CSV
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -676,7 +821,7 @@ export default function Home() {
 
       {/* Single Prediction Tab */}
       {activeTab === 'single' && (
-        <>
+        <div style={styles.contentContainer}>
           <form onSubmit={handleSubmit} style={styles.form}>
             {/* Demographics Section */}
             <div style={styles.section}>
@@ -966,12 +1111,12 @@ export default function Home() {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Batch Upload Tab */}
       {activeTab === 'batch' && (
-        <>
+        <div style={styles.contentContainer}>
           <div style={styles.batchSection}>
             <h3 style={styles.sectionTitle}>Upload Customer CSV</h3>
             <p style={styles.helpText}>
@@ -1126,12 +1271,12 @@ export default function Home() {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* History Tab */}
       {activeTab === 'history' && (
-        <>
+        <div style={styles.contentContainer}>
           {/* History Stats */}
           {historyStats && historyStats.total_predictions > 0 && (
             <div style={styles.historyStats}>
@@ -1225,13 +1370,10 @@ export default function Home() {
               </table>
             )}
           </div>
-        </>
+        </div>
       )}
 
-      {/* Footer */}
-      <p style={styles.footer}>
-        ChurnShield AI v2.4 • XGBoost • {metrics ? `${metrics.total_samples?.toLocaleString()} samples` : ''}
-      </p>
+      </div>
     </div>
   )
 }
@@ -1252,193 +1394,259 @@ function getPriorityColor(priority) {
 }
 
 const styles = {
-  container: { maxWidth: '1400px', margin: '0 auto', padding: '24px 40px', fontFamily: 'system-ui, sans-serif' },
-  title: { fontSize: '2rem', marginBottom: '4px', color: '#1f2937' },
-  subtitle: { color: '#6b7280', marginBottom: '24px' },
+  // App Container - CRM Layout
+  appContainer: { display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif', background: '#f1f5f9' },
 
-  // Header
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' },
-  headerLeft: { display: 'flex', flexDirection: 'column' },
+  // Sidebar
+  sidebar: { width: '260px', background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)', color: 'white', display: 'flex', flexDirection: 'column', position: 'fixed', height: '100vh', zIndex: 100 },
+  sidebarHeader: { padding: '24px 20px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)' },
+  sidebarLogo: { fontSize: '32px' },
+  sidebarBrand: { display: 'flex', flexDirection: 'column' },
+  sidebarTitle: { fontSize: '18px', fontWeight: '700', letterSpacing: '-0.5px' },
+  sidebarSubtitle: { fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' },
+  sidebarNav: { padding: '20px 12px', flex: 1 },
+  navItem: { width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: 'none', background: 'transparent', color: '#94a3b8', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', textAlign: 'left', marginBottom: '4px', transition: 'all 0.2s ease' },
+  navItemActive: { width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: 'none', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', textAlign: 'left', marginBottom: '4px', boxShadow: '0 4px 12px rgba(59,130,246,0.4)' },
+  navIcon: { fontSize: '18px' },
+  sidebarStats: { padding: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)' },
+  sidebarStatItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' },
+  sidebarStatLabel: { fontSize: '12px', color: '#94a3b8' },
+  sidebarStatValue: { fontSize: '14px', fontWeight: '700', color: '#22c55e' },
+  sidebarFooter: { padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '11px', color: '#64748b', textAlign: 'center' },
 
-  // Stats
-  statsRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '24px' },
-  statCard: { padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '12px', textAlign: 'center', border: '1px solid #bbf7d0' },
-  statValue: { fontSize: '1.5rem', fontWeight: '700', color: '#166534' },
-  statLabel: { fontSize: '12px', color: '#4b5563', marginTop: '4px' },
+  // Main Content
+  mainContent: { flex: 1, marginLeft: '260px', minHeight: '100vh' },
 
-  // Feature Chart
-  chartSection: { padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px', marginBottom: '24px', border: '1px solid #e5e7eb' },
-  chartTitle: { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '16px' },
-  chartContainer: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  barRow: { display: 'grid', gridTemplateColumns: '120px 1fr 50px', gap: '12px', alignItems: 'center' },
-  barLabel: { fontSize: '12px', color: '#4b5563', textAlign: 'right' },
-  barTrack: { height: '20px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: '4px', transition: 'width 0.5s' },
-  barValue: { fontSize: '12px', fontWeight: '600', color: '#374151' },
+  // Top Bar
+  topBar: { background: 'white', padding: '20px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 50 },
+  topBarLeft: { display: 'flex', flexDirection: 'column', gap: '4px' },
+  pageTitle: { fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', margin: 0 },
+  breadcrumb: { fontSize: '12px', color: '#94a3b8' },
+  topBarRight: { display: 'flex', alignItems: 'center', gap: '16px' },
 
-  // Tabs
-  tabs: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
-  tab: { flex: '1 1 auto', minWidth: '120px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500', color: '#6b7280', textAlign: 'center' },
-  tabActive: { flex: '1 1 auto', minWidth: '120px', padding: '12px', border: '2px solid #3b82f6', borderRadius: '8px', backgroundColor: '#eff6ff', cursor: 'pointer', fontWeight: '600', color: '#3b82f6', textAlign: 'center' },
+  // Health Score Widget
+  healthScoreWidget: { display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' },
+  healthScoreCircle: { position: 'relative', width: '44px', height: '44px' },
+  healthScoreSvg: { width: '44px', height: '44px', transform: 'rotate(-90deg)' },
+  healthScoreValue: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '12px', fontWeight: '700', color: '#1e293b' },
+  healthScoreInfo: { display: 'flex', flexDirection: 'column' },
+  healthScoreLabel: { fontSize: '11px', color: '#64748b' },
+  healthScoreStatus: { fontSize: '13px', fontWeight: '600' },
 
-  // Form
-  form: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' },
-  section: { padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' },
-  sectionTitle: { fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' },
-  row: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' },
-  field: { display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' },
-  label: { fontSize: '12px', fontWeight: '500', color: '#4b5563' },
-  input: { padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: 'white' },
-  button: { padding: '14px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#3b82f6', border: 'none', borderRadius: '8px', cursor: 'pointer' },
-  submitButton: { width: '100%', padding: '16px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#3b82f6', border: 'none', borderRadius: '8px', cursor: 'pointer', marginTop: '16px' },
-  error: { padding: '12px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '6px', textAlign: 'center', marginBottom: '16px' },
+  // Quick Actions Bar
+  quickActionsBar: { display: 'flex', gap: '12px', marginBottom: '24px' },
+  quickAction: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', background: 'white', border: '2px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#475569', transition: 'all 0.2s ease' },
+  quickActionIcon: { fontSize: '16px' },
 
-  // Results
-  result: { marginTop: '24px', padding: '20px', border: '2px solid', borderRadius: '12px', backgroundColor: 'white' },
-  resultTitle: { fontSize: '1.1rem', marginBottom: '16px', color: '#1f2937', fontWeight: '600' },
-  resultGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '20px' },
-  resultCard: { textAlign: 'center', padding: '12px' },
-  resultValue: { fontSize: '1.5rem', fontWeight: '700' },
-  resultLabel: { fontSize: '12px', color: '#6b7280', marginTop: '4px' },
-  riskBadge: { display: 'inline-block', padding: '8px 16px', borderRadius: '20px', color: 'white', fontWeight: '600', fontSize: '14px' },
+  // Dashboard Container
+  dashboardContainer: { padding: '24px 32px' },
 
-  // Gauge
-  gaugeContainer: { textAlign: 'center', marginBottom: '10px' },
-  gaugeSvg: { width: '200px', height: '120px' },
-  gaugeValue: { fontSize: '2rem', fontWeight: '700', color: '#1f2937', marginTop: '-10px' },
-  gaugeLabel: { fontSize: '12px', color: '#6b7280' },
+  // KPI Grid - CRM Style
+  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '24px' },
+  kpiCard: { background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  kpiHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
+  kpiIconSmall: { fontSize: '20px' },
+  kpiTrend: { fontSize: '11px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' },
+  kpiValue: { fontSize: '2rem', fontWeight: '800', color: '#1e293b', marginBottom: '4px' },
+  kpiLabel: { fontSize: '13px', color: '#64748b', marginBottom: '12px' },
+  kpiProgress: { height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' },
+  kpiProgressBar: { height: '100%', borderRadius: '2px', transition: 'width 0.6s ease' },
 
-  // Risk Factors
-  riskFactorsSection: { marginTop: '24px', padding: '16px', backgroundColor: '#fefce8', borderRadius: '8px', border: '1px solid #fef08a' },
-  insightTitle: { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' },
-  factorsList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  factorItem: { padding: '12px', backgroundColor: 'white', borderRadius: '6px', borderLeft: '4px solid', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
-  factorHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' },
-  factorName: { fontWeight: '600', fontSize: '13px', color: '#1f2937' },
-  impactBadge: { padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', color: 'white' },
-  factorDescription: { fontSize: '12px', color: '#6b7280', margin: 0 },
+  // Dashboard Grid
+  dashboardGrid: { display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' },
+  dashboardLeft: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  dashboardRight: { display: 'flex', flexDirection: 'column', gap: '20px' },
 
-  // Recommendations
-  recommendationsSection: { marginTop: '16px', padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' },
-  recommendationsList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  recommendationItem: { padding: '12px', backgroundColor: 'white', borderRadius: '6px', borderLeft: '4px solid', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
-  recHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' },
-  recAction: { fontWeight: '600', fontSize: '13px', color: '#1f2937' },
-  priorityBadge: { padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', color: 'white' },
-  recDescription: { fontSize: '12px', color: '#6b7280', margin: '0 0 6px 0' },
-  recImpact: { fontSize: '11px', fontWeight: '600', color: '#22c55e' },
+  // CRM Cards
+  crmCard: { background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  crmCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+  crmCardTitle: { fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 },
+  crmCardBadge: { fontSize: '10px', fontWeight: '700', color: '#22c55e', background: '#dcfce7', padding: '4px 10px', borderRadius: '20px', textTransform: 'uppercase' },
+  crmCardSubtitle: { fontSize: '12px', color: '#94a3b8' },
 
-  // Comparison
-  comparisonSection: { marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' },
-  comparisonToggle: { width: '100%', padding: '10px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', color: '#374151' },
-  comparisonPanel: { marginTop: '16px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' },
-  comparisonTitle: { fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' },
-  comparisonGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' },
-  comparisonField: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  comparisonInput: { padding: '8px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '4px' },
-  compareButton: { width: '100%', padding: '10px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' },
-  comparisonResult: { marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' },
-  comparisonBox: { textAlign: 'center', padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' },
-  comparisonLabel: { fontSize: '11px', color: '#6b7280', marginBottom: '4px' },
-  comparisonValue: { fontSize: '1.5rem', fontWeight: '700' },
-  comparisonArrow: { fontSize: '24px', color: '#9ca3af' },
-  comparisonDiff: { width: '100%', textAlign: 'center', fontWeight: '600', marginTop: '8px' },
+  // Risk Segments Grid
+  riskSegmentsGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' },
+  riskSegmentCard: { display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#f8fafc', borderRadius: '12px' },
+  riskSegmentIndicator: { width: '4px', height: '40px', borderRadius: '2px' },
+  riskSegmentContent: { display: 'flex', flexDirection: 'column' },
+  riskSegmentLabel: { fontSize: '12px', color: '#64748b', marginBottom: '2px' },
+  riskSegmentCount: { fontSize: '20px', fontWeight: '700', color: '#1e293b' },
+  riskSegmentPercent: { fontSize: '11px', color: '#94a3b8' },
+  emptySegments: { padding: '40px', textAlign: 'center', color: '#94a3b8' },
 
-  // Batch
-  batchSection: { padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' },
-  helpText: { fontSize: '13px', color: '#6b7280', marginBottom: '16px', lineHeight: '1.5' },
-  uploadForm: { display: 'flex', gap: '12px', alignItems: 'center' },
-  fileInput: { flex: 1, padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: 'white' },
-  batchResults: { marginTop: '24px' },
-  summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' },
-  summaryCard: { padding: '16px', backgroundColor: 'white', borderRadius: '12px', textAlign: 'center', border: '2px solid #e5e7eb' },
-  summaryValue: { fontSize: '1.5rem', fontWeight: '700', color: '#1f2937' },
-  summaryLabel: { fontSize: '11px', color: '#6b7280', marginTop: '4px', textTransform: 'uppercase' },
+  // Drivers Grid
+  driversGrid: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  driverItem: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  driverHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  driverName: { fontSize: '13px', fontWeight: '500', color: '#475569' },
+  driverValue: { fontSize: '13px', fontWeight: '700', color: '#1e293b' },
+  driverBar: { height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' },
+  driverBarFill: { height: '100%', borderRadius: '3px', transition: 'width 0.6s ease' },
 
-  // Pie Chart
-  pieChartContainer: { display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' },
-  pieChart: { width: '150px', height: '150px' },
-  pieLegend: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  legendItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' },
-  legendDot: { width: '12px', height: '12px', borderRadius: '50%' },
+  // Insights Panel
+  insightsPanel: { background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  insightsPanelHeader: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' },
+  insightsPanelIcon: { fontSize: '20px' },
+  insightsPanelTitle: { fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 },
+  insightCards: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  insightCard: { padding: '16px', background: '#fafafa', borderRadius: '12px', borderLeft: '4px solid' },
+  insightCardHeader: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
+  insightCardIcon: { fontSize: '16px' },
+  insightCardPriority: { fontSize: '10px', fontWeight: '700', background: '#fee2e2', color: '#dc2626', padding: '3px 8px', borderRadius: '10px', textTransform: 'uppercase' },
+  insightCardText: { fontSize: '13px', color: '#475569', lineHeight: '1.5', margin: '0 0 10px 0' },
+  insightCardAction: { background: 'none', border: 'none', fontSize: '12px', fontWeight: '600', color: '#3b82f6', cursor: 'pointer', padding: 0 },
+  noInsights: { padding: '30px', textAlign: 'center', color: '#94a3b8' },
+  noInsightsIcon: { fontSize: '32px', marginBottom: '8px', display: 'block' },
 
-  // Segments
-  segmentsSection: { marginBottom: '16px' },
-  segmentTabs: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  segmentTab: { padding: '8px 16px', backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '20px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' },
-  segmentTabActive: { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: '1px solid #3b82f6', borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' },
-  segmentDot: { width: '8px', height: '8px', borderRadius: '50%' },
+  // Activity Panel
+  activityPanel: { background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  activityHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
+  activityTitle: { fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 },
+  activityViewAll: { background: 'none', border: 'none', fontSize: '12px', fontWeight: '600', color: '#3b82f6', cursor: 'pointer' },
+  activityList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  activityItem: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#f8fafc', borderRadius: '10px' },
+  activityDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  activityContent: { flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' },
+  activityText: { fontSize: '12px', color: '#475569' },
+  activityTime: { fontSize: '11px', color: '#94a3b8' },
+  activityBadge: { fontSize: '11px', fontWeight: '700', color: 'white', padding: '3px 8px', borderRadius: '10px' },
+  noActivity: { padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' },
 
-  // Risk Distribution
-  riskDistribution: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '24px' },
-  riskBars: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  riskBarItem: { display: 'grid', gridTemplateColumns: '70px 1fr 40px', gap: '12px', alignItems: 'center' },
-  riskBarLabel: { fontSize: '13px', fontWeight: '500' },
-  riskBarTrack: { height: '24px', backgroundColor: '#f3f4f6', borderRadius: '6px', overflow: 'hidden' },
-  riskBarFill: { height: '100%', borderRadius: '6px', transition: 'width 0.3s' },
-  riskBarCount: { fontSize: '14px', fontWeight: '600', textAlign: 'right' },
+  // Model Info Card
+  modelInfoCard: { background: 'linear-gradient(135deg, #1e293b, #334155)', borderRadius: '16px', padding: '20px', color: 'white' },
+  modelInfoTitle: { fontSize: '13px', fontWeight: '600', marginBottom: '16px', margin: '0 0 16px 0', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  modelInfoGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' },
+  modelInfoItem: { display: 'flex', flexDirection: 'column', gap: '4px' },
+  modelInfoLabel: { fontSize: '11px', color: '#94a3b8' },
+  modelInfoValue: { fontSize: '14px', fontWeight: '700', color: 'white' },
 
-  // Table
-  tableContainer: { backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: '14px' },
-  th: { padding: '12px 16px', backgroundColor: '#f9fafb', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' },
-  tr: { borderBottom: '1px solid #f3f4f6' },
-  trChurn: { borderBottom: '1px solid #f3f4f6', backgroundColor: '#fef2f2' },
-  td: { padding: '12px 16px' },
-  tableBadge: { padding: '4px 10px', borderRadius: '12px', color: 'white', fontSize: '12px', fontWeight: '500' },
-  typeBadge: { padding: '4px 10px', borderRadius: '12px', color: 'white', fontSize: '11px', fontWeight: '500' },
-
-  // History
-  historyStats: { marginBottom: '24px' },
-  loading: { padding: '40px', textAlign: 'center', color: '#6b7280' },
-  emptyState: { padding: '40px', textAlign: 'center', color: '#6b7280' },
-  clearButton: { padding: '10px 16px', fontSize: '13px', fontWeight: '600', color: '#dc2626', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer' },
-  deleteButton: { padding: '6px 12px', fontSize: '12px', color: '#dc2626', backgroundColor: 'transparent', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer' },
-
-  footer: { textAlign: 'center', color: '#9ca3af', fontSize: '12px', marginTop: '32px' },
-
-  // Dashboard
-  dashboardContainer: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' },
-  kpiCard: { display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '2px solid', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-  kpiIcon: { fontSize: '28px' },
-  kpiContent: { flex: 1 },
-  kpiValue: { fontSize: '1.75rem', fontWeight: '700', color: '#1f2937' },
-  kpiLabel: { fontSize: '12px', color: '#6b7280', marginTop: '2px' },
+  // Welcome Card
+  welcomeCard: { background: 'white', borderRadius: '24px', padding: '60px 40px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' },
+  welcomeIcon: { fontSize: '64px', marginBottom: '20px' },
+  welcomeTitle: { fontSize: '1.75rem', fontWeight: '700', color: '#1e293b', marginBottom: '12px' },
+  welcomeText: { fontSize: '15px', color: '#64748b', maxWidth: '450px', margin: '0 auto 24px', lineHeight: '1.6' },
+  welcomeActions: { display: 'flex', gap: '12px', justifyContent: 'center' },
+  welcomePrimary: { padding: '14px 28px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' },
+  welcomeSecondary: { padding: '14px 28px', background: 'white', color: '#475569', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },
 
   // Trend Chart
-  trendSection: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' },
   trendChart: { width: '100%', overflowX: 'auto' },
-  trendSvg: { width: '100%', minWidth: '500px', height: '200px' },
+  trendSvg: { width: '100%', minWidth: '400px', height: '180px' },
 
-  // Analytics Grid
-  analyticsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' },
-  analyticsCard: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' },
+  // Form
+  form: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' },
+  section: { padding: '24px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' },
+  sectionTitle: { fontSize: '13px', fontWeight: '700', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' },
+  row: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' },
+  field: { display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' },
+  label: { fontSize: '12px', fontWeight: '600', color: '#374151' },
+  input: { padding: '12px 16px', fontSize: '14px', border: '2px solid #e5e7eb', borderRadius: '10px', backgroundColor: '#f9fafb', transition: 'all 0.2s ease', outline: 'none' },
+  button: { padding: '14px', fontSize: '16px', fontWeight: '600', color: 'white', background: 'linear-gradient(135deg, #667eea, #764ba2)', border: 'none', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(102,126,234,0.4)' },
+  submitButton: { width: '100%', padding: '18px', fontSize: '16px', fontWeight: '700', color: 'white', background: 'linear-gradient(135deg, #667eea, #764ba2)', border: 'none', borderRadius: '12px', cursor: 'pointer', marginTop: '20px', boxShadow: '0 4px 16px rgba(102,126,234,0.4)', transition: 'transform 0.2s ease, box-shadow 0.2s ease' },
+  error: { padding: '16px', background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', color: '#dc2626', borderRadius: '12px', textAlign: 'center', marginBottom: '16px', fontWeight: '500', border: '1px solid #fecaca' },
 
-  // Donut Chart
-  donutContainer: { display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' },
-  donutChart: { width: '160px', height: '160px' },
-  donutLegend: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  legendRow: { display: 'flex', alignItems: 'center', gap: '8px' },
-  legendText: { fontSize: '13px', flex: 1 },
-  legendCount: { fontSize: '13px', fontWeight: '600' },
+  // Results
+  result: { marginTop: '24px', padding: '28px', border: 'none', borderRadius: '20px', background: 'white', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' },
+  resultTitle: { fontSize: '1.25rem', marginBottom: '20px', color: '#1f2937', fontWeight: '700' },
+  resultGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginTop: '24px' },
+  resultCard: { textAlign: 'center', padding: '16px', background: '#f8fafc', borderRadius: '12px' },
+  resultValue: { fontSize: '1.75rem', fontWeight: '700' },
+  resultLabel: { fontSize: '12px', color: '#64748b', marginTop: '6px', fontWeight: '500' },
+  riskBadge: { display: 'inline-block', padding: '10px 20px', borderRadius: '25px', color: 'white', fontWeight: '700', fontSize: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' },
 
-  // Insights List
-  insightsList: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  insightItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' },
-  insightLabel: { fontSize: '13px', color: '#6b7280' },
-  insightValue: { fontSize: '14px', fontWeight: '600', color: '#1f2937' },
+  // Gauge
+  gaugeContainer: { textAlign: 'center', marginBottom: '16px', padding: '20px', background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', borderRadius: '16px' },
+  gaugeSvg: { width: '220px', height: '130px' },
+  gaugeValue: { fontSize: '2.5rem', fontWeight: '800', color: '#1e293b', marginTop: '-8px' },
+  gaugeLabel: { fontSize: '13px', color: '#64748b', fontWeight: '500' },
 
-  // Model Performance
-  modelPerformance: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' },
-  perfGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' },
-  perfItem: { textAlign: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' },
-  perfLabel: { fontSize: '11px', color: '#6b7280', marginBottom: '4px' },
-  perfValue: { fontSize: '1.1rem', fontWeight: '600', color: '#1f2937' },
+  // Risk Factors
+  riskFactorsSection: { marginTop: '24px', padding: '20px', background: 'linear-gradient(135deg, #fefce8, #fef9c3)', borderRadius: '16px' },
+  insightTitle: { fontSize: '15px', fontWeight: '700', color: '#1e293b', marginBottom: '16px' },
+  factorsList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  factorItem: { padding: '16px', backgroundColor: 'white', borderRadius: '12px', borderLeft: '4px solid', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
+  factorHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' },
+  factorName: { fontWeight: '700', fontSize: '14px', color: '#1e293b' },
+  impactBadge: { padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '700', color: 'white', textTransform: 'uppercase' },
+  factorDescription: { fontSize: '13px', color: '#64748b', margin: 0 },
 
-  // No Data
-  noDataMessage: { padding: '60px 20px', textAlign: 'center', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' },
-  noDataIcon: { fontSize: '48px', marginBottom: '16px' },
-  noDataTitle: { fontSize: '1.25rem', fontWeight: '600', color: '#374151', marginBottom: '8px' },
-  noDataText: { fontSize: '14px', color: '#6b7280', maxWidth: '400px', margin: '0 auto' },
+  // Recommendations
+  recommendationsSection: { marginTop: '20px', padding: '20px', background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', borderRadius: '16px' },
+  recommendationsList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  recommendationItem: { padding: '16px', backgroundColor: 'white', borderRadius: '12px', borderLeft: '4px solid', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
+  recHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' },
+  recAction: { fontWeight: '700', fontSize: '14px', color: '#1e293b' },
+  priorityBadge: { padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '700', color: 'white', textTransform: 'uppercase' },
+  recDescription: { fontSize: '13px', color: '#64748b', margin: '0 0 8px 0' },
+  recImpact: { fontSize: '12px', fontWeight: '700', color: '#059669', background: '#d1fae5', padding: '4px 10px', borderRadius: '8px', display: 'inline-block' },
+
+  // Comparison
+  comparisonSection: { marginTop: '24px', paddingTop: '24px', borderTop: '2px solid #e5e7eb' },
+  comparisonToggle: { width: '100%', padding: '14px', background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: '600', color: '#475569', fontSize: '14px' },
+  comparisonPanel: { marginTop: '20px', padding: '20px', background: '#f8fafc', borderRadius: '16px' },
+  comparisonTitle: { fontSize: '14px', fontWeight: '700', color: '#1e293b', marginBottom: '16px' },
+  comparisonGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '16px' },
+  comparisonField: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  comparisonInput: { padding: '10px 14px', fontSize: '13px', border: '2px solid #e2e8f0', borderRadius: '10px', background: 'white' },
+  compareButton: { width: '100%', padding: '14px', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(139,92,246,0.3)' },
+  comparisonResult: { marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' },
+  comparisonBox: { textAlign: 'center', padding: '16px 24px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' },
+  comparisonLabel: { fontSize: '11px', color: '#64748b', marginBottom: '6px', fontWeight: '500', textTransform: 'uppercase' },
+  comparisonValue: { fontSize: '2rem', fontWeight: '800' },
+  comparisonArrow: { fontSize: '28px', color: '#94a3b8' },
+  comparisonDiff: { width: '100%', textAlign: 'center', fontWeight: '700', marginTop: '12px', fontSize: '15px' },
+
+  // Batch
+  batchSection: { padding: '28px', background: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' },
+  helpText: { fontSize: '14px', color: '#64748b', marginBottom: '20px', lineHeight: '1.6' },
+  uploadForm: { display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' },
+  fileInput: { flex: 1, minWidth: '200px', padding: '14px 18px', border: '2px dashed #cbd5e1', borderRadius: '12px', backgroundColor: '#f8fafc', cursor: 'pointer' },
+  batchResults: { marginTop: '28px' },
+  summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '28px' },
+  summaryCard: { padding: '24px 20px', background: 'white', borderRadius: '16px', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', border: '2px solid transparent', transition: 'all 0.2s ease' },
+  summaryValue: { fontSize: '2rem', fontWeight: '800', color: '#1e293b' },
+  summaryLabel: { fontSize: '11px', color: '#64748b', marginTop: '8px', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.5px' },
+
+  // Pie Chart
+  pieChartContainer: { display: 'flex', alignItems: 'center', gap: '32px', justifyContent: 'center', flexWrap: 'wrap' },
+  pieChart: { width: '180px', height: '180px', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.1))' },
+  pieLegend: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  legendItem: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', fontWeight: '500' },
+  legendDot: { width: '14px', height: '14px', borderRadius: '50%', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+
+  // Segments
+  segmentsSection: { marginBottom: '20px' },
+  segmentTabs: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
+  segmentTab: { padding: '10px 18px', backgroundColor: 'white', border: '2px solid #e2e8f0', borderRadius: '25px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease' },
+  segmentTabActive: { padding: '10px 18px', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: '2px solid transparent', borderRadius: '25px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(102,126,234,0.3)' },
+  segmentDot: { width: '10px', height: '10px', borderRadius: '50%' },
+
+  // Risk Distribution
+  riskDistribution: { padding: '24px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '24px' },
+  riskBars: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  riskBarItem: { display: 'grid', gridTemplateColumns: '80px 1fr 50px', gap: '16px', alignItems: 'center' },
+  riskBarLabel: { fontSize: '14px', fontWeight: '600', color: '#475569' },
+  riskBarTrack: { height: '32px', backgroundColor: '#f1f5f9', borderRadius: '10px', overflow: 'hidden', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' },
+  riskBarFill: { height: '100%', borderRadius: '10px', transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' },
+  riskBarCount: { fontSize: '16px', fontWeight: '700', textAlign: 'right', color: '#1e293b' },
+
+  // Table
+  tableContainer: { backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' },
+  table: { width: '100%', borderCollapse: 'collapse', fontSize: '14px' },
+  th: { padding: '16px 20px', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', textAlign: 'left', fontWeight: '700', color: '#475569', borderBottom: '2px solid #e2e8f0', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' },
+  tr: { borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s ease' },
+  trChurn: { borderBottom: '1px solid #f1f5f9', background: 'linear-gradient(135deg, #fef2f2, #fee2e2)' },
+  td: { padding: '16px 20px' },
+  tableBadge: { padding: '6px 14px', borderRadius: '20px', color: 'white', fontSize: '12px', fontWeight: '700', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' },
+  typeBadge: { padding: '5px 12px', borderRadius: '20px', color: 'white', fontSize: '11px', fontWeight: '700' },
+
+  // History
+  historyStats: { marginBottom: '28px' },
+  loading: { padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '16px' },
+  emptyState: { padding: '60px', textAlign: 'center', color: '#64748b' },
+  clearButton: { padding: '12px 20px', fontSize: '13px', fontWeight: '700', color: '#dc2626', background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', border: 'none', borderRadius: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(220,38,38,0.1)' },
+  deleteButton: { padding: '8px 14px', fontSize: '12px', color: '#ef4444', backgroundColor: 'transparent', border: '2px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', transition: 'all 0.2s ease' },
+
+  // Content container for other tabs
+  contentContainer: { padding: '24px 32px' },
 }
