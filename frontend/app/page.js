@@ -795,11 +795,11 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
-            <button type="submit" style={styles.button} disabled={loading}>
-              {loading ? 'Predicting...' : 'Predict Churn Risk'}
-            </button>
           </form>
+
+          <button type="button" onClick={handleSubmit} style={styles.submitButton} disabled={loading}>
+            {loading ? 'Predicting...' : 'Predict Churn Risk'}
+          </button>
 
           {/* Prediction Result with Gauge */}
           {prediction && (
@@ -1252,12 +1252,16 @@ function getPriorityColor(priority) {
 }
 
 const styles = {
-  container: { maxWidth: '750px', margin: '40px auto', padding: '20px', fontFamily: 'system-ui, sans-serif' },
-  title: { fontSize: '2rem', textAlign: 'center', marginBottom: '4px', color: '#1f2937' },
-  subtitle: { textAlign: 'center', color: '#6b7280', marginBottom: '24px' },
+  container: { maxWidth: '1400px', margin: '0 auto', padding: '24px 40px', fontFamily: 'system-ui, sans-serif' },
+  title: { fontSize: '2rem', marginBottom: '4px', color: '#1f2937' },
+  subtitle: { color: '#6b7280', marginBottom: '24px' },
+
+  // Header
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' },
+  headerLeft: { display: 'flex', flexDirection: 'column' },
 
   // Stats
-  statsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' },
+  statsRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '24px' },
   statCard: { padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '12px', textAlign: 'center', border: '1px solid #bbf7d0' },
   statValue: { fontSize: '1.5rem', fontWeight: '700', color: '#166534' },
   statLabel: { fontSize: '12px', color: '#4b5563', marginTop: '4px' },
@@ -1278,14 +1282,15 @@ const styles = {
   tabActive: { flex: '1 1 auto', minWidth: '120px', padding: '12px', border: '2px solid #3b82f6', borderRadius: '8px', backgroundColor: '#eff6ff', cursor: 'pointer', fontWeight: '600', color: '#3b82f6', textAlign: 'center' },
 
   // Form
-  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  section: { padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' },
+  form: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' },
+  section: { padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' },
   sectionTitle: { fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' },
-  row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
+  row: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' },
   field: { display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' },
   label: { fontSize: '12px', fontWeight: '500', color: '#4b5563' },
   input: { padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: 'white' },
   button: { padding: '14px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#3b82f6', border: 'none', borderRadius: '8px', cursor: 'pointer' },
+  submitButton: { width: '100%', padding: '16px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#3b82f6', border: 'none', borderRadius: '8px', cursor: 'pointer', marginTop: '16px' },
   error: { padding: '12px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '6px', textAlign: 'center', marginBottom: '16px' },
 
   // Results
@@ -1345,7 +1350,7 @@ const styles = {
   uploadForm: { display: 'flex', gap: '12px', alignItems: 'center' },
   fileInput: { flex: 1, padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: 'white' },
   batchResults: { marginTop: '24px' },
-  summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' },
+  summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' },
   summaryCard: { padding: '16px', backgroundColor: 'white', borderRadius: '12px', textAlign: 'center', border: '2px solid #e5e7eb' },
   summaryValue: { fontSize: '1.5rem', fontWeight: '700', color: '#1f2937' },
   summaryLabel: { fontSize: '11px', color: '#6b7280', marginTop: '4px', textTransform: 'uppercase' },
@@ -1394,7 +1399,7 @@ const styles = {
 
   // Dashboard
   dashboardContainer: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' },
+  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' },
   kpiCard: { display: 'flex', alignItems: 'center', gap: '12px', padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '2px solid', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   kpiIcon: { fontSize: '28px' },
   kpiContent: { flex: 1 },
@@ -1407,7 +1412,7 @@ const styles = {
   trendSvg: { width: '100%', minWidth: '500px', height: '200px' },
 
   // Analytics Grid
-  analyticsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
+  analyticsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' },
   analyticsCard: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' },
 
   // Donut Chart
@@ -1426,7 +1431,7 @@ const styles = {
 
   // Model Performance
   modelPerformance: { padding: '20px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' },
-  perfGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' },
+  perfGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' },
   perfItem: { textAlign: 'center', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' },
   perfLabel: { fontSize: '11px', color: '#6b7280', marginBottom: '4px' },
   perfValue: { fontSize: '1.1rem', fontWeight: '600', color: '#1f2937' },
