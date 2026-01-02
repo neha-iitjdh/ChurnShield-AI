@@ -142,13 +142,13 @@ def get_prediction_stats() -> dict:
     cursor.execute('''
         SELECT DATE(created_at) as date,
                COUNT(*) as count,
-               AVG(churn_probability) as avg_prob
+               AVG(churn_probability) as avg_probability
         FROM predictions
         WHERE created_at >= datetime('now', '-7 days')
         GROUP BY DATE(created_at)
         ORDER BY date
     ''')
-    trend = [{'date': row['date'], 'count': row['count'], 'avg_prob': round(row['avg_prob'], 2)}
+    trend = [{'date': row['date'], 'count': row['count'], 'avg_probability': round(row['avg_probability'], 2)}
              for row in cursor.fetchall()]
 
     conn.close()
