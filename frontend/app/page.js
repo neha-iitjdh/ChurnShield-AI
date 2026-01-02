@@ -674,6 +674,48 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+              {/* Retention Strategies Card */}
+              <div style={styles.crmCard}>
+                <div style={styles.crmCardHeader}>
+                  <h3 style={styles.crmCardTitle}>Retention Strategies</h3>
+                  <span style={styles.crmCardBadge}>Recommended</span>
+                </div>
+                <div style={styles.strategiesGrid}>
+                  <div style={styles.strategyItem}>
+                    <div style={styles.strategyIcon}>📞</div>
+                    <div style={styles.strategyContent}>
+                      <span style={styles.strategyTitle}>Proactive Outreach</span>
+                      <span style={styles.strategyDesc}>Contact at-risk customers before they leave</span>
+                    </div>
+                    <span style={styles.strategyImpact}>-25%</span>
+                  </div>
+                  <div style={styles.strategyItem}>
+                    <div style={styles.strategyIcon}>🎁</div>
+                    <div style={styles.strategyContent}>
+                      <span style={styles.strategyTitle}>Loyalty Rewards</span>
+                      <span style={styles.strategyDesc}>Offer exclusive discounts to long-term customers</span>
+                    </div>
+                    <span style={styles.strategyImpact}>-18%</span>
+                  </div>
+                  <div style={styles.strategyItem}>
+                    <div style={styles.strategyIcon}>📋</div>
+                    <div style={styles.strategyContent}>
+                      <span style={styles.strategyTitle}>Contract Upgrades</span>
+                      <span style={styles.strategyDesc}>Incentivize month-to-month users to commit</span>
+                    </div>
+                    <span style={styles.strategyImpact}>-20%</span>
+                  </div>
+                  <div style={styles.strategyItem}>
+                    <div style={styles.strategyIcon}>💳</div>
+                    <div style={styles.strategyContent}>
+                      <span style={styles.strategyTitle}>Auto-Pay Setup</span>
+                      <span style={styles.strategyDesc}>Reduce friction with automatic payments</span>
+                    </div>
+                    <span style={styles.strategyImpact}>-15%</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Right Column - Insights & Actions */}
@@ -1646,6 +1688,15 @@ const styles = {
   emptyState: { padding: '60px', textAlign: 'center', color: '#64748b' },
   clearButton: { padding: '12px 20px', fontSize: '13px', fontWeight: '700', color: '#dc2626', background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', border: 'none', borderRadius: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(220,38,38,0.1)' },
   deleteButton: { padding: '8px 14px', fontSize: '12px', color: '#ef4444', backgroundColor: 'transparent', border: '2px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', transition: 'all 0.2s ease' },
+
+  // Strategies Grid
+  strategiesGrid: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  strategyItem: { display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: '#f8fafc', borderRadius: '12px', transition: 'all 0.2s ease' },
+  strategyIcon: { fontSize: '24px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
+  strategyContent: { flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' },
+  strategyTitle: { fontSize: '13px', fontWeight: '600', color: '#1e293b' },
+  strategyDesc: { fontSize: '11px', color: '#64748b' },
+  strategyImpact: { fontSize: '13px', fontWeight: '700', color: '#22c55e', background: '#dcfce7', padding: '4px 10px', borderRadius: '8px' },
 
   // Content container for other tabs
   contentContainer: { padding: '24px 32px' },
