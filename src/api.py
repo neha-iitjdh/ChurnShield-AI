@@ -13,9 +13,9 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-from contextlib import asynccontextmanager
 import pandas as pd
 import io
+import threading
 
 # Handle imports for both local run and Docker
 try:
@@ -28,18 +28,16 @@ except ImportError:
     from src.database import save_prediction, get_predictions, get_prediction_stats, delete_prediction, clear_history
 
 # ============================================================
-# Global model instance (initialized in lifespan)
+# Global model instance (initialized in background)
 # ============================================================
 model: ChurnModel = None
+model_loading = False
 
 
-# ============================================================
-# Lifespan - Initialize model AFTER server starts
-# ============================================================
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Initialize model after server binds to port."""
-    global model
+def init_model():
+    """Initialize model in background thread."""
+    global model, model_loading
+    model_loading = True
     print("Initializing ChurnShield AI v2.2...")
     model = ChurnModel()
 
@@ -49,12 +47,8 @@ async def lifespan(app: FastAPI):
 
     print("Training XGBoost model...")
     model.train(training_data)
+    model_loading = False
     print("Model ready!")
-
-    yield  # Server runs here
-
-    # Cleanup (if needed)
-    print("Shutting down ChurnShield AI...")
 
 
 # ============================================================
@@ -64,9 +58,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ChurnShield AI",
     description="Predict customer churn using XGBoost ML - With batch predictions & history!",
-    version="2.2.0",
-    lifespan=lifespan
+    version="2.2.0"
 )
+
+# Start model initialization in background thread immediately
+threading.Thread(target=init_model, daemon=True).start()
 
 # CORS middleware
 app.add_middleware(
@@ -186,9 +182,17 @@ def root():
 @app.get("/health")
 def health_check():
     """Health check with model status."""
+    if model is None:
+        return {
+            "status": "starting",
+            "model_trained": False,
+            "model_loading": model_loading,
+            "accuracy": 0
+        }
     return {
         "status": "healthy",
         "model_trained": model.is_trained,
+        "model_loading": model_loading,
         "accuracy": model.metrics.get('accuracy', 0)
     }
 
@@ -196,7 +200,7 @@ def health_check():
 @app.get("/metrics", response_model=MetricsResponse)
 def get_metrics():
     """Get model performance metrics and feature importance."""
-    if not model.is_trained:
+    if model is None or not model.is_trained:
         raise HTTPException(status_code=503, detail="Model not trained")
 
     return MetricsResponse(
@@ -211,7 +215,7 @@ def get_metrics():
 @app.post("/predict", response_model=PredictionResponse)
 def predict_churn(customer: CustomerInput):
     """Predict churn for a single customer."""
-    if not model.is_trained:
+    if model is None or not model.is_trained:
         raise HTTPException(status_code=503, detail="Model not trained")
 
     try:
@@ -243,7 +247,7 @@ async def predict_batch(file: UploadFile = File(...)):
 
     Optional: customerID column for tracking
     """
-    if not model.is_trained:
+    if model is None or not model.is_trained:
         raise HTTPException(status_code=503, detail="Model not trained")
 
     # Check file type
