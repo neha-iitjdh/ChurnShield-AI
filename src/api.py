@@ -29,25 +29,36 @@ except ImportError:
     from src.database import save_prediction, get_predictions, get_prediction_stats, delete_prediction, clear_history
 
 # ============================================================
-# Global model instance (initialized in background)
+# Global model instance (loaded from pre-trained file)
 # ============================================================
 model: ChurnModel = None
 model_loading = False
 
 
 def init_model():
-    """Initialize model in background thread."""
+    """Load pre-trained model from file."""
     global model, model_loading
+    import os
     model_loading = True
     print("Initializing ChurnShield AI v2.2...")
-    model = ChurnModel()
 
-    print("Loading training data...")
-    raw_data = load_telco_data()
-    training_data = prepare_data(raw_data)
+    # Find model file path
+    model_path = os.path.join(os.path.dirname(__file__), "churn_model.joblib")
 
-    print("Training XGBoost model...")
-    model.train(training_data)
+    if os.path.exists(model_path):
+        print(f"Loading pre-trained model from {model_path}...")
+        model = ChurnModel()
+        model.load(model_path)
+        print(f"Model loaded! Accuracy: {model.metrics.get('accuracy', 0)}%")
+    else:
+        print(f"WARNING: Model file not found at {model_path}")
+        print("Training model from scratch...")
+        model = ChurnModel()
+        raw_data = load_telco_data()
+        training_data = prepare_data(raw_data)
+        model.train(training_data)
+        print("Model trained!")
+
     model_loading = False
     print("Model ready!")
 
