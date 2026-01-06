@@ -5,6 +5,7 @@ A machine learning-powered customer churn prediction system built with FastAPI a
 ## Table of Contents
 
 - [Overview](#overview)
+- [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
@@ -26,6 +27,35 @@ ChurnShield AI predicts customer churn using an XGBoost classifier trained on th
 - Risk level categorization (Low, Medium, High, Critical)
 - Feature importance analysis
 - Prediction history tracking
+
+## Screenshots
+
+### Dashboard
+Overview of key metrics, churn trends, and risk distribution.
+
+![Dashboard](Snapshots/dashboard.png)
+
+### Single Customer Prediction
+Analyze individual customers with detailed input form and risk assessment.
+
+![Single Prediction Form](Snapshots/single_prediction1.png)
+
+![Single Prediction Result](Snapshots/single_prediction2.png)
+
+### Batch Import
+Upload CSV files for bulk customer analysis with summary statistics.
+
+![Batch Import](Snapshots/batch_import.png)
+
+### Prediction History
+Track and review all past predictions.
+
+![Prediction History](Snapshots/prediction_history.png)
+
+### API Documentation
+Interactive Swagger UI for API exploration and testing.
+
+![API Documentation](Snapshots/api_documentation.png)
 
 ## Architecture
 
